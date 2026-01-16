@@ -7,7 +7,8 @@ import {
   UserState, 
   Reward,
   TaskStatus,
-  Transaction
+  Transaction,
+  PurchasedItem
 } from './types';
 import { 
   THEMES, 
@@ -45,6 +46,7 @@ const App: React.FC = () => {
     currencyIcon: '⭐',
     tasks: INITIAL_TASKS.map(t => t.id === '1' ? { ...t, status: TaskStatus.WAITING } : t),
     purchasedRewards: [],
+    inventory: [],
     badges: ['b1'],
     dream: {
       title: 'PlayStation 5',
@@ -72,9 +74,13 @@ const App: React.FC = () => {
     setUser(prev => ({
       ...prev,
       pendingBalance: pendingSum,
-      notifications: { ...prev.notifications, missions: waitingCount }
+      notifications: { 
+        ...prev.notifications, 
+        missions: waitingCount,
+        wallet: prev.inventory.length
+      }
     }));
-  }, [user.tasks]);
+  }, [user.tasks, user.inventory]);
 
   useEffect(() => {
     document.body.style.backgroundColor = theme.bg;
@@ -96,11 +102,26 @@ const App: React.FC = () => {
     if (user.balance < reward.price) return;
     confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 }, colors: ['#FFD700', theme.accent] });
     const tx = addTransaction('minus', `Куплено: ${reward.title}`, reward.price, reward.icon);
+    
+    const purchasedItem: PurchasedItem = {
+      ...reward,
+      purchaseId: Math.random().toString(36).substr(2, 9)
+    };
+
     setUser(prev => ({
       ...prev,
       balance: prev.balance - reward.price,
       purchasedRewards: reward.recurring ? prev.purchasedRewards : [...prev.purchasedRewards, reward.id],
+      inventory: [...prev.inventory, purchasedItem],
       history: [tx, ...prev.history]
+    }));
+  };
+
+  const handleReceiveReward = (purchaseId: string) => {
+    confetti({ particleCount: 100, spread: 50, origin: { y: 0.8 } });
+    setUser(prev => ({
+      ...prev,
+      inventory: prev.inventory.filter(item => item.purchaseId !== purchaseId)
     }));
   };
 
@@ -175,11 +196,13 @@ const App: React.FC = () => {
             dream={user.dream} 
             history={user.history} 
             tasks={user.tasks}
+            inventory={user.inventory}
             currencyName={user.currencyName} 
             currencyIcon={user.currencyIcon} 
             onSaveDream={handleSaveDream} 
             onDeleteDream={handleDeleteDream} 
             onClaimDream={handleClaimDream} 
+            onReceiveReward={handleReceiveReward}
           />
         );
       case 'missions': return <MissionsScreen tasks={user.tasks} onComplete={handleCompleteMission} theme={theme} currencyIcon={user.currencyIcon} balance={user.balance} pendingBalance={user.pendingBalance} />;

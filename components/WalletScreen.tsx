@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { History, Clock, ChevronDown, ChevronUp, ArrowUp, Star } from 'lucide-react';
-import { AppTheme, Dream, Transaction, Task, TaskStatus } from '../types';
+import { History, Clock, ChevronDown, ChevronUp, ArrowUp, Star, Gift, CheckCircle } from 'lucide-react';
+import { AppTheme, Dream, Transaction, Task, TaskStatus, PurchasedItem } from '../types';
 import DreamCard from './DreamCard';
 
 interface WalletScreenProps {
@@ -11,11 +11,13 @@ interface WalletScreenProps {
   dream: Dream;
   history: Transaction[];
   tasks: Task[];
+  inventory: PurchasedItem[];
   currencyName: string;
   currencyIcon: string;
   onSaveDream: (title: string, goal: number) => void;
   onDeleteDream: () => void;
   onClaimDream?: () => void;
+  onReceiveReward: (purchaseId: string) => void;
 }
 
 const WalletScreen: React.FC<WalletScreenProps> = ({ 
@@ -25,14 +27,17 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
   dream, 
   history, 
   tasks,
+  inventory,
   currencyIcon,
   onSaveDream,
   onDeleteDream,
-  onClaimDream
+  onClaimDream,
+  onReceiveReward
 }) => {
   const [displayBalance, setDisplayBalance] = useState(balance);
   const [isPendingOpen, setIsPendingOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
 
   useEffect(() => {
     if (balance !== displayBalance) {
@@ -100,6 +105,69 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
         </div>
       </div>
 
+      {/* INVENTORY SECTION - ОЖИДАЕТ ВРУЧЕНИЯ */}
+      <div className={`space-y-2 transition-all duration-300 ${isInventoryOpen ? 'bg-indigo-500/5 p-2 rounded-[38px]' : ''}`}>
+        <button 
+          onClick={() => setIsInventoryOpen(!isInventoryOpen)}
+          className="w-full flex items-center justify-between p-6 rounded-[32px] border-4 bg-indigo-500/5 transition-all active:scale-[0.98]"
+          style={{ borderColor: 'rgba(99, 102, 241, 0.4)', borderStyle: 'solid' }}
+        >
+          <div className="flex items-center space-x-4 text-left">
+            <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 relative">
+              <Gift size={20} className={inventory.length > 0 ? "animate-bounce" : ""} />
+              {inventory.length > 0 && (
+                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-indigo-500 text-white text-[10px] font-black flex items-center justify-center shadow-lg border-2 border-black">
+                  {inventory.length}
+                </div>
+              )}
+            </div>
+            <div>
+              <h4 className="text-[10px] font-black uppercase text-indigo-400/60 leading-none mb-1">Твои награды</h4>
+              <p className="text-lg font-black italic text-indigo-400 uppercase tracking-tight">ОЖИДАЕТ ВРУЧЕНИЯ</p>
+            </div>
+          </div>
+          {isInventoryOpen ? <ChevronUp className="text-indigo-400" /> : <ChevronDown className="text-indigo-400" />}
+        </button>
+
+        {isInventoryOpen && (
+          <div className="space-y-2 px-1 animate-in slide-in-from-top-2 duration-300">
+            {inventory.length === 0 ? (
+              <div className="p-8 rounded-[28px] border-2 border-dashed border-white/5 text-center opacity-30 text-[10px] font-black uppercase tracking-widest">Нет купленных наград</div>
+            ) : (
+              <div className="bg-black/20 rounded-[32px] p-2 space-y-2 border border-white/5">
+                {inventory.map(item => (
+                  <div 
+                    key={item.purchaseId}
+                    className="p-4 rounded-[28px] bg-white/5 border-2 border-dashed border-indigo-500/30 flex flex-col space-y-4"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shrink-0 shadow-lg">
+                        <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-grow">
+                        <h4 className="text-base font-black uppercase tracking-tight leading-none mb-1">{item.title}</h4>
+                        <div className="flex items-center space-x-1 opacity-60">
+                          <span className="text-[10px] font-black uppercase">Куплено за {item.price} {currencyIcon}</span>
+                        </div>
+                      </div>
+                      <div className="text-3xl">{item.icon}</div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => onReceiveReward(item.purchaseId)}
+                      className="w-full py-3 rounded-xl bg-indigo-500 text-white font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center space-x-2 shadow-lg active:scale-95 transition-all"
+                    >
+                      <CheckCircle size={14} />
+                      <span>ПОЛУЧЕНО</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* PENDING SECTION - ОЖИДАЕТ РОДИТЕЛЕЙ */}
       <div className={`space-y-2 transition-all duration-300 ${isPendingOpen ? 'bg-orange-500/5 p-2 rounded-[38px]' : ''}`}>
         <button 
@@ -129,26 +197,28 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
             {pendingTasks.length === 0 ? (
               <div className="p-8 rounded-[28px] border-2 border-dashed border-white/5 text-center opacity-30 text-[10px] font-black uppercase tracking-widest">Нет миссий на проверке</div>
             ) : (
-              pendingTasks.map(task => (
-                <div 
-                  key={task.id}
-                  className="p-6 rounded-[28px] bg-white/5 border-2 border-dashed border-orange-500/30 flex items-center justify-between transition-all"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                      {task.icon}
+              <div className="bg-black/20 rounded-[32px] p-2 space-y-2 border border-white/5">
+                {pendingTasks.map(task => (
+                  <div 
+                    key={task.id}
+                    className="p-5 rounded-[28px] bg-white/5 border-2 border-dashed border-orange-500/30 flex items-center justify-between transition-all"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                        {task.icon}
+                      </div>
+                      <div>
+                        <h4 className="text-base font-black uppercase tracking-tight leading-none mb-1">{task.title}</h4>
+                        <p className="text-[9px] font-black text-orange-400 uppercase opacity-60">в пути на кошелёк</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-base font-black uppercase tracking-tight leading-none mb-1">{task.title}</h4>
-                      <p className="text-[9px] font-black text-orange-400 uppercase opacity-60">в пути на кошелёк</p>
+                    <div className="flex items-center space-x-2">
+                      <ArrowUp size={18} className="text-orange-400 animate-pulse" />
+                      <span className="font-black italic text-2xl text-orange-400">+{task.reward} {currencyIcon}</span>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <ArrowUp size={18} className="text-orange-400 animate-pulse" />
-                    <span className="font-black italic text-2xl text-orange-400">+{task.reward} {currencyIcon}</span>
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -180,7 +250,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
               history.slice(0, 6).map((tx, idx) => (
                 <div 
                   key={tx.id}
-                  className={`py-6 flex items-center justify-between transition-colors ${idx !== history.slice(0,6).length - 1 ? 'border-b border-white/5' : ''}`}
+                  className={`py-6 flex items-center justify-between transition-colors px-4 ${idx !== history.slice(0,6).length - 1 ? 'border-b border-white/5' : ''}`}
                 >
                   <div className="flex items-center space-x-4">
                     <span className="text-2xl opacity-80">{tx.icon}</span>

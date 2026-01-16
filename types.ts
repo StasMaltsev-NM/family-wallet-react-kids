@@ -40,6 +40,10 @@ export interface Reward {
   recurring: boolean;
 }
 
+export interface PurchasedItem extends Reward {
+  purchaseId: string;
+}
+
 export interface Dream {
   title: string;
   goal: number;
@@ -73,6 +77,7 @@ export interface UserState {
   currencyIcon: string;
   tasks: Task[];
   purchasedRewards: string[];
+  inventory: PurchasedItem[];
   badges: string[];
   dream: Dream;
   history: Transaction[];
