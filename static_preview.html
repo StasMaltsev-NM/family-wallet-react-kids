@@ -1,0 +1,186 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Wallet Kids - UI Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1A1A1A;
+            color: #FFFFFF;
+            margin: 0;
+            padding-bottom: 100px;
+        }
+        .glossy-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .glossy-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SECTION: WALLET (КОШЕЛЕК) -->
+    <div id="wallet-preview" class="max-w-md mx-auto p-6 space-y-10">
+        <div class="flex justify-between items-center mt-8">
+            <h1 class="text-4xl font-black italic tracking-tighter uppercase leading-none">
+                БАНК <br/><span style="color: #FFD700">FAM</span>
+            </h1>
+            <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-lg">😎</div>
+        </div>
+
+        <!-- Dream Card -->
+        <div class="w-full p-6 rounded-[40px] border-4 relative overflow-hidden bg-[#2B2B2B] border-[#FFD700] shadow-[0_15px_40px_rgba(255,215,0,0.2)]">
+            <div class="flex justify-between items-start mb-6">
+                <div class="flex items-center space-x-4">
+                    <div class="text-5xl drop-shadow-2xl">🎮</div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase italic leading-none">PlayStation 5</h3>
+                        <p class="text-[9px] font-black uppercase opacity-40 mt-1 tracking-[0.2em]">Твоя главная мечта</p>
+                    </div>
+                </div>
+            </div>
+            <div class="relative pt-2">
+                <div class="flex justify-between text-[10px] font-black uppercase mb-2 opacity-50 tracking-widest">
+                    <span>Прогресс</span>
+                    <span style="color: #FFD700">15%</span>
+                </div>
+                <div class="h-4 w-full rounded-full bg-black/40 overflow-hidden p-1 border border-white/10">
+                    <div class="h-full rounded-full bg-[#FFD700]" style="width: 15%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Balance Section -->
+        <div class="space-y-4">
+            <div class="relative p-10 rounded-[48px] border-4 border-[#FFD700] bg-[#2B2B2B] flex flex-col items-center justify-center shadow-[0_20px_60px_rgba(255,215,0,0.3)]">
+                <div class="absolute top-6 left-10 flex items-center space-x-2 px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="text-[9px] font-black uppercase">Готов потратить</span>
+                </div>
+                <div class="flex items-center space-x-5 mt-4">
+                    <div class="w-16 h-16 rounded-3xl flex items-center justify-center text-4xl shadow-xl border-2 border-white/10 bg-gradient-to-br from-[#FFD700] to-[#FFA500]">⭐</div>
+                    <span class="text-7xl font-black italic tracking-tighter">150</span>
+                </div>
+            </div>
+
+            <!-- Orange Pending Dashboard -->
+            <div class="flex items-center justify-between p-6 rounded-[32px] border-4 border-dashed bg-orange-500/5 border-orange-500/40">
+                <div class="flex items-center space-x-4">
+                    <div class="p-3 rounded-2xl bg-orange-500/20 border border-orange-500/30 text-orange-400">
+                        <svg class="w-5 h-5 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-[10px] font-black uppercase text-orange-400/60 leading-none mb-1">В пути на кошелёк</h4>
+                        <p class="text-lg font-black italic text-orange-400 uppercase tracking-tight">ОЖИДАЕТ РОДИТЕЛЕЙ</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl font-black italic text-orange-400">+50 ⭐</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="border-white/10 my-10" />
+
+    <!-- SECTION: MISSIONS (МИССИИ) -->
+    <div id="missions-preview" class="max-w-md mx-auto p-6">
+        <div class="mb-10 flex justify-between items-start">
+            <div class="relative">
+                <h1 class="text-5xl font-black italic uppercase leading-[0.85] tracking-tighter">
+                    Твои <br />
+                    <span style="color: #FFD700">Миссии</span>
+                </h1>
+            </div>
+            <div class="flex flex-col items-end space-y-3 pt-1">
+                <div class="flex items-center space-x-2 px-4 py-2 rounded-2xl border-2 border-[#FFD700] bg-black/40">
+                    <span class="font-black text-base leading-none">150 <span class="text-[10px] opacity-70">⭐</span></span>
+                </div>
+                <div class="flex items-center space-x-2 px-4 py-2 rounded-2xl border-2 border-dashed border-orange-500/60 bg-orange-500/10">
+                    <div class="flex flex-col items-end text-orange-400">
+                        <span class="text-[6px] font-black uppercase opacity-60">В пути</span>
+                        <span class="font-black text-xs">+50 ⭐</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Card Example -->
+        <div class="relative overflow-hidden p-6 rounded-[35px] border-2 border-b-[10px] bg-[#2B2B2B] border-[#FFD700] shadow-[0_15px_35px_rgba(255,215,0,0.15)]">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-5">
+                    <div class="w-16 h-16 rounded-[22px] flex items-center justify-center text-4xl bg-yellow-500/10 border-2 border-yellow-500/20">🧹</div>
+                    <div>
+                        <h3 class="text-xl font-black uppercase leading-none mb-1.5">Убраться в комнате</h3>
+                        <p class="text-[11px] opacity-50 font-bold uppercase leading-tight">Пропылесосить и вытереть пыль</p>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="text-[10px] font-black uppercase opacity-30 mb-1">Награда</div>
+                    <div class="flex items-center font-black text-3xl italic text-[#FFD700]">
+                        <span class="text-base mr-1">+</span>50<span class="ml-1 text-xl">⭐</span>
+                    </div>
+                </div>
+            </div>
+            <button class="w-full glossy-btn py-5 rounded-[22px] font-black text-lg uppercase tracking-widest bg-[#FFD700] text-[#1A1A1A]">
+                Я ЭТО СДЕЛАЛ!
+            </button>
+        </div>
+    </div>
+
+    <hr class="border-white/10 my-10" />
+
+    <!-- SECTION: AVATAR (АВАТАР С ТЕНЬЮ) -->
+    <div id="avatar-preview" class="max-w-md mx-auto p-6 flex flex-col items-center">
+        <h3 class="text-xs font-black uppercase opacity-40 mb-10 tracking-widest">Твой Персонаж</h3>
+        <div class="relative flex flex-col items-center">
+            <!-- Тень / Пятно под аватаром -->
+            <div class="absolute -bottom-2 w-44 h-12 rounded-[100%] blur-3xl opacity-40 bg-[#FFD700]"></div>
+            <div class="absolute -bottom-1 w-36 h-6 rounded-[100%] opacity-20 blur-xl bg-[#FFD700]"></div>
+            <div class="absolute bottom-1 w-28 h-4 rounded-[100%] border-4 opacity-30 border-[#FFD700] bg-[#FFD700]"></div>
+            
+            <!-- Static SVG Avatar Placeholder -->
+            <div class="relative z-10 animate-float">
+                <svg width="180" height="216" viewBox="0 0 100 120" fill="none">
+                    <rect x="35" y="5" width="30" height="30" rx="4" fill="#2B2B2B" stroke="#FFD700" stroke-width="4"/>
+                    <rect x="42" y="15" width="4" height="6" rx="1" fill="#FFD700" />
+                    <rect x="54" y="15" width="4" height="6" rx="1" fill="#FFD700" />
+                    <rect x="25" y="40" width="50" height="45" rx="6" fill="#2B2B2B" stroke="#FFD700" stroke-width="4"/>
+                    <rect x="10" y="42" width="12" height="35" rx="3" fill="#2B2B2B" stroke="#FFD700" stroke-width="3.5"/>
+                    <rect x="78" y="42" width="12" height="35" rx="3" fill="#2B2B2B" stroke="#FFD700" stroke-width="3.5"/>
+                    <rect x="30" y="88" width="16" height="25" rx="4" fill="#2B2B2B" stroke="#FFD700" stroke-width="3.5"/>
+                    <rect x="54" y="88" width="16" height="25" rx="4" fill="#2B2B2B" stroke="#FFD700" stroke-width="3.5"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

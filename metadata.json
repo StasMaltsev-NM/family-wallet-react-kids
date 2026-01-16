@@ -1,0 +1,7 @@
+{
+  "name": "Family Wallet Kids",
+  "description": "A gamified chore and allowance tracker for kids with a Roblox-inspired UI, featuring rewarding tasks, a virtual shop, and AI-powered image editing.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
