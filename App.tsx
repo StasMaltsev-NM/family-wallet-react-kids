@@ -215,9 +215,9 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.bg, color: theme.text }}>
-      <main className="flex-grow overflow-y-auto">
-        {renderScreen()}
-      </main>
+      <main className="flex-grow scrollArea">
+  {renderScreen()}
+</main>
       <BottomNav 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
