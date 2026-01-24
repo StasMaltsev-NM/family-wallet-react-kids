@@ -65,6 +65,8 @@ const [pollMs, setPollMs] = useState(3000);
 const [isOnline, setIsOnline] = useState(true);
   // 1) Источник задач от backend
   const [apiTasks, setApiTasks] = useState<ApiTask[]>([]);
+  const [apiRewards, setApiRewards] = useState<any[]>([]);
+
 
   // 2) Локальная история для "минусов" (покупки) - backend пока не отдает
   const [localHistory, setLocalHistory] = useState<Transaction[]>([]);
@@ -118,13 +120,13 @@ const loadMe = async () => {
       lifetime_earnings: me?.lifetime_earnings,  // ← ДОБАВИЛИ!
     });
 
-    setUser((prev) => ({
-      ...prev,
-      balance: Number(me?.balance ?? prev.balance),
-      pendingBalance: Number(me?.pending_balance ?? prev.pendingBalance),
-      name: String(me?.name ?? prev.name),
-      lifetimeEarnings: Number(me?.lifetime_earnings ?? prev.lifetimeEarnings), // ← ДОБАВИЛИ!
-    }));
+setUser((prev) => ({
+  ...prev,
+  balance: Number(me?.balance ?? prev.balance),
+  pendingBalance: Number(me?.pending_balance ?? prev.pendingBalance),
+  name: String(me?.name ?? prev.name),
+  lifetimeEarnings: Number(me?.lifetime_earnings ?? prev.lifetimeEarnings), // ← ДОБАВЬ!
+}));
   } catch (e) {
     console.error("[KID] loadMe FAIL:", e);
   }
@@ -170,6 +172,22 @@ const loadTasks = async () => {
   } catch (e) {
     console.error("[KID] loadTasks FAIL:", e);
   }
+  // --- API: загрузка наград ребенка ---
+const loadRewards = async () => {
+  try {
+    if (!kidCode) return;
+
+    const res = await kidApi.listRewards(kidCode);
+    const nextApiRewards = (res?.rewards ?? []) as any[];
+    
+    console.log("[KID] loaded rewards:", nextApiRewards.length);
+    
+    setApiRewards(nextApiRewards);
+  } catch (e) {
+    console.error("[KID] loadRewards FAIL:", e);
+  }
+};
+
 };
     // pending = сумма только WAITING задач
     const pendingSum = uiTasks
@@ -196,19 +214,35 @@ const loadTasks = async () => {
     console.error("[KID] loadTasks FAIL:", e);
   }
 };
+// --- API: загрузка наград ребенка ---
+const loadRewards = async () => {
+  try {
+    if (!kidCode) return;
+
+    const res = await kidApi.listRewards(kidCode);
+    const nextApiRewards = (res?.rewards ?? []) as any[];
+    
+    console.log("[KID] loaded rewards:", nextApiRewards.length);
+    
+    setApiRewards(nextApiRewards);
+  } catch (e) {
+    console.error("[KID] loadRewards FAIL:", e);
+  }
+};
 
   // initial load
   useEffect(() => {
     loadTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadRewards();  // ← ДОБАВИЛИ!
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kidCode]);
-
   // polling
 useEffect(() => {
   if (!kidCode) return;
 
   const id = window.setInterval(() => {
     loadTasks();
+    loadRewards();
   }, pollMs);
 
   return () => window.clearInterval(id);
@@ -425,9 +459,16 @@ useEffect(() => {
           <ShopScreen
             balance={user.balance}
             pendingBalance={user.pendingBalance}
-            rewards={INITIAL_REWARDS.filter(
-              (r) => !user.purchasedRewards.includes(r.id)
-            )}
+            rewards={apiRewards
+              .filter((r) => !user.purchasedRewards.includes(r.id))
+              .map((r) => ({
+                id: r.id,
+                title: r.title,
+                price: r.price,
+                icon: r.icon || '🎁',
+                recurring: !r.is_permanent,
+              }))
+            }
             onPurchase={handlePurchaseReward}
             theme={theme}
             currencyIcon={user.currencyIcon}
