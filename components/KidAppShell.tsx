@@ -72,6 +72,7 @@ const [isOnline, setIsOnline] = useState(true);
   const [localHistory, setLocalHistory] = useState<Transaction[]>([]);
 
   const [user, setUser] = useState<UserState>({
+    childId: '',
     balance: 150,
     pendingBalance: 50,
     lifetimeEarnings: 500,
@@ -122,6 +123,7 @@ const loadMe = async () => {
 
 setUser((prev) => ({
   ...prev,
+  childId: String(me?.child_id ?? prev.childId),
   balance: Number(me?.balance ?? prev.balance),
   pendingBalance: Number(me?.pending_balance ?? prev.pendingBalance),
   name: String(me?.name ?? prev.name),
@@ -220,11 +222,23 @@ const loadRewards = async () => {
     if (!kidCode) return;
 
     const res = await kidApi.listRewards(kidCode);
-    const nextApiRewards = (res?.rewards ?? []) as any[];
+    const allRewards = (res?.rewards ?? []) as any[];
     
-    console.log("[KID] loaded rewards:", nextApiRewards.length);
+    // Фильтруем награды только для текущего ребёнка
+    // Получаем child_id из whoami
+      const me = await kidApi.whoami(kidCode);
+      const myChildId = me?.child_id;  // ← ПРАВИЛЬНО!
     
-    setApiRewards(nextApiRewards);
+// Показываем награды:
+// 1) Созданные для этого ребёнка (r.child_id === myChildId)
+// 2) ИЛИ общие награды без child_id (r.child_id === null или пустое)
+    const myRewards = allRewards.filter((r: any) => 
+      !r.child_id || r.child_id === myChildId
+    );
+    
+    console.log("[KID] loaded rewards:", myRewards.length, "из", allRewards.length);
+    
+    setApiRewards(myRewards);
   } catch (e) {
     console.error("[KID] loadRewards FAIL:", e);
   }

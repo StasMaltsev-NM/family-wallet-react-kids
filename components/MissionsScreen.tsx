@@ -141,33 +141,33 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
                 </div>
 
                 <div className="relative z-10">
-                  {task.status === TaskStatus.IDLE ? (
-                    <button
-                      onClick={() => onComplete(task.id)}
-                      className="w-full glossy-btn py-5 rounded-[22px] font-black text-lg uppercase tracking-widest transition-all hover:brightness-110 active:scale-95 flex items-center justify-center space-x-3"
-                      style={{ 
-                        backgroundColor: theme.accent, 
-                        color: theme.bg,
-                        boxShadow: `0 8px 0 ${theme.secondary}CC, 0 15px 30px ${theme.accent}44`
-                      }}
-                    >
-                      <CheckCircle2 size={26} />
-                      <span>Я ЭТО СДЕЛАЛ!</span>
-                    </button>
-                  ) : isWaiting ? (
-                    <div 
-                      className="w-full py-5 rounded-[22px] flex items-center justify-center space-x-3 border-4 border-dashed font-black uppercase text-sm animate-pulse transition-all duration-500"
-                      style={{ borderColor: theme.accent, color: theme.accent }}
-                    >
-                      <Clock size={22} />
-                      <span>Ждём одобрения...</span>
-                    </div>
-                  ) : (
-                    <div className="w-full py-4 rounded-2xl bg-white/5 text-center font-black opacity-30 uppercase text-[11px] tracking-[0.4em] flex items-center justify-center space-x-2">
-                       <Lock size={16} />
-                       <span>Миссия выполнена</span>
-                    </div>
-                  )}
+{task.status === TaskStatus.IDLE ? (
+  <button
+    onClick={() => onComplete(task.id)}
+    className="w-full glossy-btn py-5 rounded-[22px] font-black text-lg uppercase tracking-widest transition-all hover:brightness-110 active:scale-95 flex items-center justify-center space-x-3"
+    style={{
+      backgroundColor: theme.accent,
+      color: theme.bg,
+      boxShadow: `0 8px 0 ${theme.secondary}CC, 0 15px 30px ${theme.accent}44`,
+    }}
+  >
+    <CheckCircle2 size={26} />
+    <span>Я ЭТО СДЕЛАЛ!</span>
+  </button>
+) : task.status === TaskStatus.WAITING ? (
+  <div
+    className="w-full py-5 rounded-[22px] flex items-center justify-center space-x-3 border-4 border-dashed font-black uppercase text-sm animate-pulse transition-all duration-500"
+    style={{ borderColor: theme.accent, color: theme.accent }}
+  >
+    <Clock size={22} />
+    <span>Ждём одобрения...</span>
+  </div>
+) : (
+  <div className="w-full py-4 rounded-2xl bg-white/5 text-center font-black opacity-30 uppercase text-[11px] tracking-[0.4em] flex items-center justify-center space-x-2">
+    <Lock size={16} />
+    <span>Миссия выполнена</span>
+  </div>
+)}
                 </div>
               </div>
             );

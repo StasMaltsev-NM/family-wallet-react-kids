@@ -4,6 +4,23 @@ export enum ThemeId {
   NEON_POP = 'NEON_POP',
   GOLDEN_TROPHY = 'GOLDEN_TROPHY'
 }
+export interface UserState {
+  childId: string;  // ← ДОБАВЬ ЭТУ СТРОКУ!
+  balance: number;
+  pendingBalance: number;
+  lifetimeEarnings: number;
+  name: string;
+  currencyName: string;
+  currencyIcon: string;
+  tasks: Task[];
+  purchasedRewards: string[];
+  inventory: PurchasedItem[];
+  badges: string[];
+  dream: Dream;
+  history: Transaction[];
+  isParentMode: boolean;
+  notifications: UserNotifications;
+}
 
 export interface AppTheme {
   id: ThemeId;
