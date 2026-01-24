@@ -336,10 +336,23 @@ const handlePurchaseReward = async (reward: Reward) => {
   if (user.balance < reward.price) return;
 
   try {
-    if (!kidCode) return;
+    if (!kidCode) {
+      console.error('[KID] kidCode is empty!');
+      alert('Код доступа не найден. Перезайдите в приложение.');
+      return;
+    }
+
+    console.log('[KID] purchaseReward START:', { 
+      kidCode, 
+      rewardId: reward.id,
+      rewardTitle: reward.title,
+      rewardPrice: reward.price
+    });
 
     // ВЫЗЫВАЕМ API!
     const res = await kidApi.purchaseReward(kidCode, reward.id);
+
+    console.log('[KID] purchaseReward SUCCESS:', res);
 
     confetti({
       particleCount: 200,
@@ -375,7 +388,7 @@ const handlePurchaseReward = async (reward: Reward) => {
     await loadRewards();
   } catch (e) {
     console.error("[KID] purchaseReward FAIL:", e);
-    alert("Ошибка при покупке награды");
+    alert("Ошибка при покупке награды: " + (e as any).message);
   }
 };
 
