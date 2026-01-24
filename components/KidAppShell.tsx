@@ -379,9 +379,6 @@ const handlePurchaseReward = async (reward: Reward) => {
   }
 };
 
-const handleReceiveReward = (purchaseId: string) => {
-  // ... остальной код
-
   const handleReceiveReward = (purchaseId: string) => {
     confetti({ particleCount: 100, spread: 50, origin: { y: 0.8 } });
     setUser((prev) => ({
