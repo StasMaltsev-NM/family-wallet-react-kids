@@ -384,36 +384,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
           </div>
         )}
       </div>
-      <>
-        {/* КНОПКА ВЫХОДА */}
-        <button
-          onClick={() => {
-            if (confirm('Выйти из профиля?')) {
-              localStorage.clear();
-              window.location.reload();
-            }
-          }}
-          className="w-full py-6 px-6 rounded-[32px] bg-red-500/10 text-red-400 font-black uppercase tracking-wider hover:bg-red-500/20 transition-all active:scale-[0.98] border-4 border-red-500/20"
-        >
-          ВЫХОД ИЗ ПРОФИЛЯ
-        </button>
-
-        <style>{`
-          @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          .animate-spin-slow {
-            animation: spin-slow 8s linear infinite;
-          }
-        `}</style>
-      </>
-    </div>
-  );
-};
-
-export default WalletScreen;
-
+      
       <style>{`
         @keyframes spin-slow {
           from { transform: rotate(0deg); }
