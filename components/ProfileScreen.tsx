@@ -40,16 +40,26 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   return (
     <div className="flex flex-col pt-4 pb-32 px-6 min-h-screen">
-      {/* Header with Settings */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-2">
-           <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black" style={{ backgroundColor: theme.accent, color: theme.bg }}>{currentLevel}</div>
-           <span className="font-black uppercase text-xs tracking-tighter">Уровень игрока</span>
-        </div>
-        <button className="p-3 rounded-2xl bg-white/5 border border-white/5 opacity-50">
-          <Settings size={20} />
-        </button>
-      </div>
+{/* Header with Settings */}
+<div className="flex justify-between items-center mb-6">
+  <div className="flex items-center space-x-2">
+    <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+      <span className="font-black uppercase text-xs tracking-tighter">УРОВЕНЬ</span>
+    </div>
+  </div>
+  
+  <button 
+    className="p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all active:scale-[0.98]"
+    onClick={() => {
+      if (confirm('Выйти из профиля?')) {
+        localStorage.clear();
+        window.location.reload();
+      }
+    }}
+  >
+    <Settings size={20} className="cursor-pointer" />
+  </button>
+</div>
 
       {/* Avatar Section */}
       <div className="flex flex-col items-center mb-8">

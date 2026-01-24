@@ -89,7 +89,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
   const pendingTasks = tasks.filter((t) => t.status === TaskStatus.WAITING);
 
   return (
-    <div className="flex flex-col pt-12 pb-36 px-6 min-h-screen space-y-2">
+    <div className="h-full w-full flex flex-col overflow-y-auto pb-32 px-6 pt-12 space-y-2">
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">
           ОЧКИ <br />
@@ -385,6 +385,19 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
         )}
       </div>
       
+/* КНОПКА ВЫХОДА */
+      <button
+        onClick={() => {
+          if (confirm('Выйти из профиля?')) {
+            localStorage.clear();
+            window.location.reload();
+          }
+        }}
+        className="w-full py-6 px-6 rounded-[32px] bg-red-500/10 text-red-400 font-black uppercase tracking-wider hover:bg-red-500/20 transition-all active:scale-[0.98] border-4 border-red-500/20"
+      >
+        ВЫХОД ИЗ ПРОФИЛЯ
+      </button>
+
       <style>{`
         @keyframes spin-slow {
           from { transform: rotate(0deg); }
@@ -394,8 +407,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
           animation: spin-slow 8s linear infinite;
         }
       `}</style>
-    </div>
+    </div> 
   );
 };
-
 export default WalletScreen;
