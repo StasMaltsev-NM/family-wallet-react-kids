@@ -331,8 +331,15 @@ useEffect(() => {
   });
 
   // покупка награды -> минус в локальную историю + инвентарь
-  const handlePurchaseReward = (reward: Reward) => {
-    if (user.balance < reward.price) return;
+// Покупка награды через API
+const handlePurchaseReward = async (reward: Reward) => {
+  if (user.balance < reward.price) return;
+
+  try {
+    if (!kidCode) return;
+
+    // ВЫЗЫВАЕМ API!
+    const res = await kidApi.purchaseReward(kidCode, reward.id);
 
     confetti({
       particleCount: 200,
@@ -354,15 +361,26 @@ useEffect(() => {
       purchaseId: Math.random().toString(36).substr(2, 9),
     };
 
+    // ОБНОВЛЯЕМ БАЛАНС ИЗ API!
     setUser((prev) => ({
       ...prev,
-      balance: prev.balance - reward.price,
+      balance: res.new_balance,
       purchasedRewards: reward.recurring
         ? prev.purchasedRewards
         : [...prev.purchasedRewards, reward.id],
       inventory: [...prev.inventory, purchasedItem],
     }));
-  };
+
+    // ПЕРЕЗАГРУЖАЕМ НАГРАДЫ!
+    await loadRewards();
+  } catch (e) {
+    console.error("[KID] purchaseReward FAIL:", e);
+    alert("Ошибка при покупке награды");
+  }
+};
+
+const handleReceiveReward = (purchaseId: string) => {
+  // ... остальной код
 
   const handleReceiveReward = (purchaseId: string) => {
     confetti({ particleCount: 100, spread: 50, origin: { y: 0.8 } });

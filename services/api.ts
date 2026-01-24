@@ -107,9 +107,17 @@ export const kidApi = {
       headers: { "X-Invite-Code": inviteCode },
     });
   },
-
+purchaseReward(inviteCode: string, rewardId: string) {
+  return request<{ message: string; new_balance: number }>(
+    "/api/rewards/purchase",
+    {
+      method: "POST",
+      body: JSON.stringify({ reward_id: rewardId }),
+    },
+    inviteCode
+  );
+},
   // на потом:
   // getRewards(inviteCode) -> /api/rewards/list
-  // purchaseReward(inviteCode, ...) -> /api/rewards/purchase
   // getDream(inviteCode) -> /api/dreams/my
 };
