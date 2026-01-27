@@ -508,7 +508,7 @@ const handlePurchaseReward = async (reward: Reward) => {
                 title: r.title,
                 price: r.price,
                 icon: r.icon || '🎁',
-                recurring: !r.is_permanent,
+                recurring: r.is_permanent === 1,
               }))
             }
             onPurchase={handlePurchaseReward}
