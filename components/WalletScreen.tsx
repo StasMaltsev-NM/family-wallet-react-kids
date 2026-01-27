@@ -89,7 +89,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
   const pendingTasks = tasks.filter((t) => t.status === TaskStatus.WAITING);
 
   return (
-    <div className="h-full w-full flex flex-col overflow-y-auto pb-32 px-6 pt-12 space-y-2">
+    <div className="flex flex-col px-6 pt-12 space-y-2">
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">
           ОЧКИ <br />
