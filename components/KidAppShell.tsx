@@ -371,7 +371,7 @@ const handlePurchaseReward = async (reward: Reward) => {
 
     const purchasedItem: PurchasedItem = {
       ...reward,
-      purchaseId: Math.random().toString(36).substr(2, 9),
+      purchaseId: res.purchase.id,
     };
 
     // ОБНОВЛЯЕМ БАЛАНС ИЗ API!
