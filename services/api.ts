@@ -107,17 +107,17 @@ export const kidApi = {
       headers: { "X-Invite-Code": inviteCode },
     });
   },
+  // на потом:
 purchaseReward(inviteCode: string, rewardId: string) {
   return request<{ message: string; new_balance: number }>(
     "/api/rewards/purchase",
     {
       method: "POST",
+      headers: { "X-Invite-Code": inviteCode },
       body: JSON.stringify({ reward_id: rewardId }),
-    },
-    inviteCode
+    }
   );
 },
-  // на потом:
   // getRewards(inviteCode) -> /api/rewards/list
   // getDream(inviteCode) -> /api/dreams/my
 };
