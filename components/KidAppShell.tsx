@@ -392,12 +392,18 @@ const handlePurchaseReward = async (reward: Reward) => {
   }
 };
 
-  const handleReceiveReward = (purchaseId: string) => {
-    confetti({ particleCount: 100, spread: 50, origin: { y: 0.8 } });
-    setUser((prev) => ({
-      ...prev,
-      inventory: prev.inventory.filter((item) => item.purchaseId !== purchaseId),
-    }));
+  const handleReceiveReward = async (purchaseId: string) => {
+    try {
+      await kidApi.confirmReceived(kidCode, purchaseId);
+      confetti({ particleCount: 100, spread: 50, origin: { y: 0.8 } });
+      setUser((prev) => ({
+        ...prev,
+        inventory: prev.inventory.filter((item) => item.purchaseId !== purchaseId),
+      }));
+    } catch (e) {
+      console.error("[RECEIVE REWARD FAIL]", e);
+      alert("Ошибка при подтверждении получения награды");
+    }
   };
 
   // parent mode (можно оставить, но history не трогаем тут)

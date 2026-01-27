@@ -120,4 +120,15 @@ purchaseReward(inviteCode: string, rewardId: string) {
 },
   // getRewards(inviteCode) -> /api/rewards/list
   // getDream(inviteCode) -> /api/dreams/my
+
+  confirmReceived(inviteCode: string, purchaseId: string) {
+    return request<{ message: string }>(
+      "/api/rewards/confirm-received",
+      {
+        method: "POST",
+        headers: { "X-Invite-Code": inviteCode },
+        body: JSON.stringify({ purchase_id: purchaseId }),
+      }
+    );
+  },
 };
