@@ -543,7 +543,7 @@ const handlePurchaseReward = async (reward: Reward) => {
 
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className="h-screen flex flex-col"
       style={{ backgroundColor: theme.bg, color: theme.text }}
     >
       <main className="flex-1 overflow-y-auto pb-20">{renderScreen()}</main>
