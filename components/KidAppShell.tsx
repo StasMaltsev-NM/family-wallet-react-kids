@@ -546,7 +546,7 @@ const handlePurchaseReward = async (reward: Reward) => {
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: theme.bg, color: theme.text }}
     >
-      <main className="flex-grow scrollArea">{renderScreen()}</main>
+      <main className="flex-grow overflow-y-auto pb-20">{renderScreen()}</main>
 
       <BottomNav
         activeTab={activeTab}
