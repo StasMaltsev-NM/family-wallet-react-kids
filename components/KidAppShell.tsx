@@ -63,14 +63,14 @@ const KidAppShell: React.FC<Props> = ({ kidCode }) => {
   const [themeId, setThemeId] = useState<ThemeId>(ThemeId.GOLDEN_TROPHY);
 const [pollMs, setPollMs] = useState(3000);
 const [isOnline, setIsOnline] = useState(true);
+const [history, setHistory] = useState<Transaction[]>([]);
   // 1) Источник задач от backend
   const [apiTasks, setApiTasks] = useState<ApiTask[]>([]);
   const [apiRewards, setApiRewards] = useState<any[]>([]);
 
 
   // 2) Локальная история для "минусов" (покупки) - backend пока не отдает
-  const [localHistory, setLocalHistory] = useState<Transaction[]>([]);
-
+   const [localHistory, setLocalHistory] = useState<Transaction[]>([]);
   const [user, setUser] = useState<UserState>({
     childId: '',
     balance: 150,
@@ -278,42 +278,78 @@ useEffect(() => {
   };
 
 
-  // === ВОТ КЛЮЧЕВОЕ: собираем history всегда из apiTasks + localHistory ===
-  useEffect(() => {
-    const apiPlus: Transaction[] = (apiTasks || [])
-      .filter((t) => t.status === "CONFIRMED")
-      .map((t) => {
-        const tsStr = t.updated_at || t.created_at;
-        const timestamp = tsStr
-          ? new Date(tsStr.replace(" ", "T")).getTime()
-          : Date.now();
+// === История: всегда из API /api/history (tasks confirmed = плюс) + purchases = минус + localHistory ===
+useEffect(() => {
+  let cancelled = false;
 
-        return {
-          id: `task_${t.id}`,
-          type: "plus",
-          title: t.title,
-          amount: Number(t.reward_amount ?? 0),
-          icon: t.icon ?? "✅",
-          timestamp,
-        };
-      });
+  const loadHistory = async () => {
+    try {
+      const resp = await kidApi.getHistory(kidCode);
+      const historyItems = Array.isArray(resp?.history) ? resp.history : [];
 
-    const merged = [...localHistory, ...apiPlus].sort(
-      (a, b) => b.timestamp - a.timestamp
-    );
+      // ✅ ПЛЮСЫ — только подтверждённые миссии
+      const apiPlus: Transaction[] = historyItems
+        .filter((x: any) => x?.type === "task" && x?.status === "CONFIRMED")
+        .map((t: any) => {
+          const ts = t.created_at
+            ? new Date(String(t.created_at).replace(" ", "T")).getTime()
+            : Date.now();
 
-    console.log(
-      "[KID] history merged:",
-      merged.length,
-      merged[0] ?? null,
-      "apiPlus=",
-      apiPlus.length,
-      "local=",
-      localHistory.length
-    );
+          return {
+            id: String(t.id),
+            type: "plus",
+            title: String(t.title ?? "Миссия"),
+            amount: Number(t.amount ?? 0),
+            icon: String(t.icon ?? "✅"),
+            timestamp: ts,
+          };
+        });
 
-    setUser((prev) => ({ ...prev, history: merged }));
-  }, [apiTasks, localHistory]);
+      // ✅ МИНУСЫ — покупки (pending + received)
+      const apiMinus: Transaction[] = historyItems
+        .filter((x: any) => x?.type === "purchase")
+        .map((p: any) => {
+          const ts = p.created_at
+            ? new Date(String(p.created_at).replace(" ", "T")).getTime()
+            : Date.now();
+
+          return {
+            id: String(p.id),
+            type: "minus",
+            title: `Награда: ${String(p.title ?? "")}`.trim(),
+            amount: Math.abs(Number(p.amount ?? 0)),
+            icon: String(p.icon ?? "🎁"),
+            timestamp: ts,
+          };
+        });
+
+      const merged = [...localHistory, ...apiPlus, ...apiMinus]
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 7);
+
+      if (!cancelled) {
+        setHistory(merged);
+      }
+    } catch (e) {
+      console.log("[KID] history load failed:", e);
+      if (!cancelled) {
+        setHistory(
+          [...localHistory]
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 7)
+        );
+      }
+    }
+  };
+
+  if (kidCode) {
+    loadHistory();
+  }
+
+  return () => {
+    cancelled = true;
+  };
+}, [kidCode, localHistory]);
 
   // helper для создания транзакции
   const addTransaction = (
@@ -349,41 +385,63 @@ const handlePurchaseReward = async (reward: Reward) => {
       rewardPrice: reward.price
     });
 
-    // ВЫЗЫВАЕМ API!
-    const res = await kidApi.purchaseReward(kidCode, reward.id);
+// 1) ВЫЗЫВАЕМ API
+const res = await kidApi.purchaseReward(kidCode, reward.id);
 
-    console.log('[KID] purchaseReward SUCCESS:', res);
+console.log("[KID] purchaseReward SUCCESS:", res);
 
-    confetti({
-      particleCount: 200,
-      spread: 100,
-      origin: { y: 0.6 },
-      colors: ["#FFD700", theme.accent],
-    });
+// 2) ЭФФЕКТ
+confetti({
+  particleCount: 200,
+  spread: 100,
+  origin: { y: 0.6 },
+  colors: ["#FFD700", theme.accent],
+});
 
-    const tx = addTransaction(
-      "minus",
-      `Куплено: ${reward.title}`,
-      reward.price,
-      reward.icon
-    );
-    setLocalHistory((prev) => [tx, ...prev]);
+// 3) ЛОКАЛЬНАЯ ИСТОРИЯ (минус)
+const tx = addTransaction(
+  "minus",
+  `Куплено: ${reward.title}`,
+  Number(reward.price ?? 0),
+  reward.icon ?? "🎁"
+);
+setLocalHistory((prev) => [tx, ...prev]);
 
-    const purchasedItem: PurchasedItem = {
-      ...reward,
-      purchaseId: res.purchase.id,
-    };
+// 4) Достаём purchaseId максимально безопасно (без "purchase" по типам)
+const purchaseId = String(
+  (res as any)?.purchase?.id ??
+  (res as any)?.purchaseId ??
+  (res as any)?.purchase_id ??
+  ""
+);
 
-    // ОБНОВЛЯЕМ БАЛАНС ИЗ API!
-    setUser((prev) => ({
-      ...prev,
-      balance: res.new_balance,
-      purchasedRewards: reward.recurring
-        ? prev.purchasedRewards
-        : [...prev.purchasedRewards, reward.id],
-      inventory: [...prev.inventory, purchasedItem],
-    }));
+// 5) Готовим предмет инвентаря (не ломаемся на типах)
+const purchasedItem = {
+  ...reward,
+  purchaseId,
+} as any; // <-- убираем боль от несовпадения PurchasedItem
 
+// 6) Перманентность: пробуем разные названия поля
+const isPermanent = Boolean(
+  (reward as any)?.is_permanent ??
+  (reward as any)?.isPermanent ??
+  (reward as any)?.isPermanentSlot ??
+  false
+);
+
+// 7) Обновляем user
+setUser((prev: any) => ({
+  ...prev,
+  balance: Number((res as any)?.new_balance ?? prev.balance ?? 0),
+
+  // одноразовые: скрываем из магазина, добавляя в purchasedRewards
+  // постоянные: не добавляем
+  purchasedRewards: isPermanent
+    ? (prev.purchasedRewards ?? [])
+    : [...(prev.purchasedRewards ?? []), reward.id],
+
+  inventory: [...(prev.inventory ?? []), purchasedItem],
+}));
     // ПЕРЕЗАГРУЖАЕМ НАГРАДЫ!
     await loadRewards();
   } catch (e) {
@@ -392,20 +450,43 @@ const handlePurchaseReward = async (reward: Reward) => {
   }
 };
 
-  const handleReceiveReward = async (purchaseId: string) => {
-    try {
-      await kidApi.confirmReceived(kidCode, purchaseId);
-      confetti({ particleCount: 100, spread: 50, origin: { y: 0.8 } });
-      setUser((prev) => ({
-        ...prev,
-        inventory: prev.inventory.filter((item) => item.purchaseId !== purchaseId),
-      }));
-    } catch (e) {
-      console.error("[RECEIVE REWARD FAIL]", e);
-      alert("Ошибка при подтверждении получения награды");
+const handleReceiveReward = async (purchaseId: string) => {
+  try {
+    if (!purchaseId) {
+      console.error("[KID] EMPTY purchaseId, skip confirm");
+      alert("Ошибка: не найден ID покупки");
+      return;
     }
-  };
 
+    console.log("[KID] confirmReceived START:", {
+      kidCode,
+      purchaseId,
+    });
+
+    const res = await kidApi.confirmReceived(kidCode, purchaseId);
+
+    console.log("[KID] confirmReceived SUCCESS:", res);
+
+    confetti({
+      particleCount: 120,
+      spread: 60,
+      origin: { y: 0.8 },
+    });
+
+    // УБИРАЕМ ИЗ ИНВЕНТАРЯ СРАЗУ
+    setUser((prev) => ({
+      ...prev,
+      inventory: prev.inventory.filter(
+        (item) => item.purchaseId !== purchaseId
+      ),
+    }));
+
+    // ИСТОРИЯ ОБНОВИТСЯ СЛЕДУЮЩИМ POLL / useEffect
+  } catch (e: any) {
+    console.error("[KID] confirmReceived FAIL:", e);
+    alert("Ошибка при подтверждении получения награды");
+  }
+};
   // parent mode (можно оставить, но history не трогаем тут)
   const handleApproveMission = (taskId: string) => {
     // В kid-app это обычно не используется, но пусть будет для режима родителя
@@ -478,7 +559,7 @@ const handlePurchaseReward = async (reward: Reward) => {
             pendingBalance={user.pendingBalance}
             theme={theme}
             dream={user.dream}
-            history={user.history}
+            history={history}
             tasks={user.tasks}
             inventory={user.inventory}
             currencyName={user.currencyName}

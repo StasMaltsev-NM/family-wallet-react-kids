@@ -1,6 +1,9 @@
 // services/api.ts
-const API_URL =
-  import.meta.env.VITE_API_URL || "https://family-wallet-api.maltsevstas21.workers.dev";
+
+// Безопасно читаем Vite env без красноты TypeScript
+const API_URL: string =
+  ((import.meta as any)?.env?.VITE_API_URL as string) ||
+  "https://family-wallet-api.maltsevstas21.workers.dev";
 
 type AnyJson = Record<string, any>;
 
@@ -16,6 +19,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const text = await res.text();
   let data: any = null;
+
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
@@ -32,13 +36,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 // --- Common ---
 export function whoami(inviteCode: string) {
-  return request<{ role: "parent" | "child"; family_id: string; family_name: string; currency: { name: string; symbol: string } }>(
-    "/api/auth/whoami",
-    {
-      method: "GET",
-      headers: { "X-Invite-Code": inviteCode },
-    }
-  );
+  return request<{
+    role: "parent" | "child";
+    family_id: string;
+    family_name: string;
+    currency: { name: string; symbol: string };
+  }>("/api/auth/whoami", {
+    method: "GET",
+    headers: { "X-Invite-Code": inviteCode },
+  });
 }
 
 // --- Parent API ---
@@ -57,7 +63,17 @@ export const parentApi = {
     });
   },
 
-  createTask(inviteCode: string, body: { child_id: string; title: string; reward_amount: number; description?: string | null; recurring?: any; recurring_days?: any }) {
+  createTask(
+    inviteCode: string,
+    body: {
+      child_id: string;
+      title: string;
+      reward_amount: number;
+      description?: string | null;
+      recurring?: any;
+      recurring_days?: any;
+    }
+  ) {
     return request<{ message: string; task: any }>("/api/tasks/create", {
       method: "POST",
       headers: { "X-Invite-Code": inviteCode },
@@ -73,11 +89,24 @@ export const parentApi = {
     });
   },
 
-  // можно расширять: rewards/dreams/parents invite...
+  // ✅ История (покупки - и миссии +)
+  getHistory(inviteCode: string) {
+    return request<{ history: any[] }>("/api/history", {
+      method: "GET",
+      headers: { "X-Invite-Code": inviteCode },
+    });
+  },
 };
 
 // --- Kid API ---
 export const kidApi = {
+  whoami(inviteCode: string) {
+    return request<any>("/api/auth/whoami", {
+      method: "GET",
+      headers: { "X-Invite-Code": inviteCode },
+    });
+  },
+
   getTasks(inviteCode: string) {
     return request<{ tasks: any[] }>("/api/tasks/list", {
       method: "GET",
@@ -95,40 +124,35 @@ export const kidApi = {
       }
     );
   },
-  whoami(inviteCode: string) {
-  return request<any>("/api/auth/whoami", {
-    method: "GET",
-    headers: { "X-Invite-Code": inviteCode },
-  });
-},
+
   listRewards(inviteCode: string) {
     return request<{ rewards: any[] }>("/api/rewards/list", {
       method: "GET",
       headers: { "X-Invite-Code": inviteCode },
     });
   },
-  // на потом:
-purchaseReward(inviteCode: string, rewardId: string) {
-  return request<{ message: string; new_balance: number }>(
-    "/api/rewards/purchase",
-    {
+
+  purchaseReward(inviteCode: string, rewardId: string) {
+    return request<any>("/api/rewards/purchase", {
       method: "POST",
       headers: { "X-Invite-Code": inviteCode },
       body: JSON.stringify({ reward_id: rewardId }),
-    }
-  );
-},
-  // getRewards(inviteCode) -> /api/rewards/list
-  // getDream(inviteCode) -> /api/dreams/my
+    });
+  },
 
   confirmReceived(inviteCode: string, purchaseId: string) {
-    return request<{ message: string }>(
-      "/api/rewards/confirm-received",
-      {
-        method: "POST",
-        headers: { "X-Invite-Code": inviteCode },
-        body: JSON.stringify({ purchase_id: purchaseId }),
-      }
-    );
+    return request<{ message: string }>("/api/rewards/confirm-received", {
+      method: "POST",
+      headers: { "X-Invite-Code": inviteCode },
+      body: JSON.stringify({ purchase_id: purchaseId }),
+    });
+  },
+
+  // ✅ История (главное для Kids истории)
+  getHistory(inviteCode: string) {
+    return request<{ history: any[] }>("/api/history", {
+      method: "GET",
+      headers: { "X-Invite-Code": inviteCode },
+    });
   },
 };
