@@ -322,7 +322,24 @@ useEffect(() => {
             timestamp: ts,
           };
         });
+      // 🎁 ВОССТАНАВЛИВАЕМ "НА ВРУЧЕНИЕ" ИЗ БЭКА:
+      // inventory = все покупки со статусом pending
+      const pendingInventory = historyItems
+        .filter((x: any) => x?.type === "purchase" && x?.status === "pending")
+        .map((p: any) => ({
+          id: String(p.id),                 // чтобы React key был стабильный
+          purchaseId: String(p.id),          // важно для confirmReceived
+          title: String(p.title ?? "Награда"),
+          icon: String(p.icon ?? "🎁"),
+          price: Math.abs(Number(p.amount ?? 0)), // amount на бэке отрицательный
+        }));
 
+      if (!cancelled) {
+        setUser((prev: any) => ({
+          ...prev,
+          inventory: pendingInventory, // <- теперь "на вручение" после refresh не пропадёт
+        }));
+      }
       const merged = [...localHistory, ...apiPlus, ...apiMinus]
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, 7);
@@ -421,14 +438,14 @@ const purchasedItem = {
   purchaseId,
 } as any; // <-- убираем боль от несовпадения PurchasedItem
 
-// 6) Перманентность: пробуем разные названия поля
+// 6) Перманентность: ВАЖНО - в UI мы прокидываем recurring
+// (см. ShopScreen mapping: recurring: r.is_permanent === 1)
 const isPermanent = Boolean(
+  (reward as any)?.recurring ??               // <-- КЛЮЧЕВО
   (reward as any)?.is_permanent ??
   (reward as any)?.isPermanent ??
-  (reward as any)?.isPermanentSlot ??
   false
 );
-
 // 7) Обновляем user
 setUser((prev: any) => ({
   ...prev,
