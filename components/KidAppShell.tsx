@@ -611,6 +611,7 @@ const handleReceiveReward = async (purchaseId: string) => {
                 id: r.id,
                 title: r.title,
                 price: r.price,
+                image: r.image_url || `https://picsum.photos/seed/${r.id}/600/600`,
                 icon: r.icon || '🎁',
                 recurring: r.is_permanent === 1,
               }))
