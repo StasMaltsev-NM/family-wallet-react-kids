@@ -591,7 +591,7 @@ const handleReceiveReward = async (purchaseId: string) => {
       case "missions":
         return (
           <MissionsScreen
-            tasks={user.tasks}
+            tasks={user.tasks.filter((t) => t.status !== TaskStatus.CONFIRMED)}
             onComplete={handleCompleteMission}
             theme={theme}
             currencyIcon={user.currencyIcon}
