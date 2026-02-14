@@ -49,15 +49,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   </div>
   
   <button 
-    className="p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all active:scale-[0.98]"
-    onClick={() => {
-      if (confirm('Выйти из профиля?')) {
-        localStorage.clear();
-        window.location.reload();
-      }
-    }}
+    type="button"
+    className="p-3 rounded-2xl bg-white/5 border border-white/5 opacity-60"
+    aria-label="Настройки"
   >
-    <Settings size={20} className="cursor-pointer" />
+    <Settings size={20} className="cursor-default" />
   </button>
 </div>
 
@@ -181,6 +177,20 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
             );
           })}
         </div>
+      </div>
+
+      <div className="mt-auto pt-8">
+        <button
+          onClick={() => {
+            if (confirm('Выйти из профиля?')) {
+              localStorage.clear();
+              window.location.reload();
+            }
+          }}
+          className="w-full py-5 px-6 rounded-[28px] bg-red-500/10 text-red-400 font-black uppercase tracking-wider hover:bg-red-500/20 transition-all active:scale-[0.98] border-2 border-red-500/20"
+        >
+          ВЫХОД ИЗ ПРОФИЛЯ
+        </button>
       </div>
     </div>
   );
