@@ -2,10 +2,11 @@
 import React, { useState, useRef } from 'react';
 import { Wand2, Camera, Upload, RefreshCw, CheckCircle, Sparkles, Wand, Zap } from 'lucide-react';
 import { AppTheme } from '../types';
-import { editImage } from '../services/gemini';
+import { kidApi } from '../services/api';
 
 interface ImageEditorProps {
   theme: AppTheme;
+  kidCode: string;
 }
 
 const STYLE_PRESETS = [
@@ -39,7 +40,7 @@ const STYLE_PRESETS = [
   },
 ];
 
-const ImageEditor: React.FC<ImageEditorProps> = ({ theme }) => {
+const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
   const [image, setImage] = useState<string | null>(null);
   const [editedImage, setEditedImage] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
@@ -64,16 +65,31 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme }) => {
   const handleEdit = async (customPrompt?: string, presetId?: string) => {
     const finalPrompt = customPrompt || prompt;
     if (!image || !finalPrompt) return;
+
+    const worldForRequest = presetId || activePreset;
+    if (!worldForRequest) {
+      alert('Сначала выбери игровой мир!');
+      return;
+    }
     
     setIsProcessing(true);
     if (presetId) setActivePreset(presetId);
     
-    const result = await editImage(image, finalPrompt);
-    
-    if (result) {
-      setEditedImage(result);
-    } else {
-      alert("Магия временно устала! Попробуй еще раз через минуту.");
+    try {
+      const result = await kidApi.generateMagicImage(kidCode, {
+        world: worldForRequest,
+        photo: image,
+        prompt: finalPrompt,
+      });
+
+      if (result?.image_url) {
+        setEditedImage(result.image_url);
+      } else {
+        alert("Магия временно устала! Попробуй еще раз через минуту.");
+      }
+    } catch (err: any) {
+      console.error('[MAGIC LENS] generate error:', err);
+      alert(`Ошибка магии: ${err?.message || 'Неизвестная ошибка'}`);
     }
     
     setIsProcessing(false);
@@ -226,7 +242,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme }) => {
                   value={prompt}
                   onChange={(e) => {
                     setPrompt(e.target.value);
-                    if (activePreset) setActivePreset(null);
                   }}
                   placeholder="напр. Сделай меня супергероем..."
                   className="w-full p-6 rounded-[28px] bg-white/5 border-2 transition-all font-bold text-base focus:outline-none"

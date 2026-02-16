@@ -155,4 +155,20 @@ export const kidApi = {
       headers: { "X-Invite-Code": inviteCode },
     });
   },
+
+  generateMagicImage(
+    inviteCode: string,
+    body: { world: string; photo?: string | null; prompt?: string }
+  ) {
+    return request<{
+      success: boolean;
+      image_url: string;
+      world: string;
+      child_name: string;
+    }>("/api/magic/generate", {
+      method: "POST",
+      headers: { "X-Invite-Code": inviteCode },
+      body: JSON.stringify(body),
+    });
+  },
 };

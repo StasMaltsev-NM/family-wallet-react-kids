@@ -639,7 +639,7 @@ const handleReceiveReward = async (purchaseId: string) => {
         );
 
       case "editor":
-        return <ImageEditor theme={theme} />;
+        return <ImageEditor theme={theme} kidCode={kidCode} />;
 
       default:
         return null;
