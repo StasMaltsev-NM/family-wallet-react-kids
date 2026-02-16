@@ -591,7 +591,7 @@ const handleReceiveReward = async (purchaseId: string) => {
       case "missions":
         return (
           <MissionsScreen
-            tasks={user.tasks}
+            tasks={user.tasks.filter((t) => t.status !== TaskStatus.CONFIRMED)}
             onComplete={handleCompleteMission}
             theme={theme}
             currencyIcon={user.currencyIcon}
@@ -611,6 +611,7 @@ const handleReceiveReward = async (purchaseId: string) => {
                 id: r.id,
                 title: r.title,
                 price: r.price,
+                image: r.image_url || `https://picsum.photos/seed/${r.id}/600/600`,
                 icon: r.icon || '🎁',
                 recurring: r.is_permanent === 1,
               }))
@@ -638,7 +639,7 @@ const handleReceiveReward = async (purchaseId: string) => {
         );
 
       case "editor":
-        return <ImageEditor theme={theme} />;
+        return <ImageEditor theme={theme} kidCode={kidCode} />;
 
       default:
         return null;
