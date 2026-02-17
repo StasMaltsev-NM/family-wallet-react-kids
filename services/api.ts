@@ -7,6 +7,15 @@ const API_URL: string =
 
 type AnyJson = Record<string, any>;
 
+export type KidDreamApi = {
+  id?: string;
+  title?: string;
+  status?: string;
+  target_amount?: number;
+  current_amount?: number;
+  icon?: string | null;
+};
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -153,6 +162,21 @@ export const kidApi = {
     return request<{ history: any[] }>("/api/history", {
       method: "GET",
       headers: { "X-Invite-Code": inviteCode },
+    });
+  },
+
+  getMyDream(inviteCode: string) {
+    return request<{ dream: KidDreamApi | null }>("/api/dreams/my", {
+      method: "GET",
+      headers: { "X-Invite-Code": inviteCode },
+    });
+  },
+
+  createDream(inviteCode: string, title: string) {
+    return request<{ message?: string; dream?: KidDreamApi | null }>("/api/dreams/create", {
+      method: "POST",
+      headers: { "X-Invite-Code": inviteCode },
+      body: JSON.stringify({ title }),
     });
   },
 

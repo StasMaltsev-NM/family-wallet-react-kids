@@ -572,6 +572,7 @@ const handleReceiveReward = async (purchaseId: string) => {
       case "wallet":
         return (
           <WalletScreen
+            inviteCode={kidCode}
             balance={user.balance}
             pendingBalance={user.pendingBalance}
             theme={theme}

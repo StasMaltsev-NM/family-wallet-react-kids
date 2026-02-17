@@ -19,6 +19,7 @@ import {
 import DreamCard from "./DreamCard";
 
 interface WalletScreenProps {
+  inviteCode: string;
   balance: number;
   pendingBalance: number;
   theme: AppTheme;
@@ -35,6 +36,7 @@ interface WalletScreenProps {
 }
 
 const WalletScreen: React.FC<WalletScreenProps> = ({
+  inviteCode,
   balance,
   pendingBalance,
   theme,
@@ -102,6 +104,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
 
       {/* DREAM CARD */}
       <DreamCard
+        inviteCode={inviteCode}
         dream={dream}
         balance={balance}
         theme={theme}
