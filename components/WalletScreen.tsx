@@ -92,13 +92,20 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
 
   return (
     <div className="flex flex-col px-6 pt-12 space-y-2">
-      <div className="flex justify-between items-center mb-2">
-        <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">
-          ОЧКИ <br />
-          <span style={{ color: theme.accent }}>ВЭЙ!</span>
-        </h1>
-        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-lg">
-          😎
+      <div className="mb-1">
+        <div
+          className="inline-flex items-center gap-3 rounded-2xl border px-4 py-2.5"
+          style={{
+            borderColor: "rgba(255,255,255,0.12)",
+            backgroundColor: "rgba(255,255,255,0.03)",
+          }}
+        >
+          <h1 className="text-[44px] font-black italic tracking-tight uppercase leading-none" style={{ color: theme.accent }}>
+            ВЭЙ!
+          </h1>
+          <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-lg">
+            😎
+          </div>
         </div>
       </div>
 

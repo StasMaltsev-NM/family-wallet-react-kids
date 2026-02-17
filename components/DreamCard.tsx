@@ -49,7 +49,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   theme,
   onSaveDream: _onSaveDream,
   onDeleteDream: _onDeleteDream,
-  onClaimDream,
+  onClaimDream: _onClaimDream,
 }) => {
   const hasCachedDream = Boolean(inviteCode) && dreamCache.has(inviteCode);
   const [inputTitle, setInputTitle] = useState("");
@@ -116,6 +116,8 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const progress = targetAmount > 0 ? Math.min((currentAmount / targetAmount) * 100, 100) : 0;
   const progressRounded = Math.round(progress);
   const isReached = uiStatus === "active" && targetAmount > 0 && remainingAmount <= 0;
+  const isLargeTargetAmount = String(Math.trunc(targetAmount)).length >= 6;
+  const sumValueClass = isLargeTargetAmount ? "text-[17px]" : "text-[20px]";
   const dreamImageUrl =
     typeof serverDream?.image_url === "string" ? String(serverDream.image_url).trim() : "";
   const heroBackgroundStyle = dreamImageUrl
@@ -227,7 +229,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
 
         {uiStatus === "active" && (
           <div className="mt-3 w-[76%] rounded-[26px] border border-white/10 bg-black/52 px-3 py-3">
-            <div className="flex items-end gap-2 leading-none flex-wrap">
+            <div className="flex items-end gap-2 leading-none whitespace-nowrap overflow-hidden">
               <span className="text-[17px] font-black italic uppercase" style={{ color: "#FFEA66" }}>
                 ОСТАЛОСЬ:
               </span>
@@ -238,10 +240,13 @@ const DreamCard: React.FC<DreamCardProps> = ({
                 ★
               </span>
             </div>
-            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.1em] text-white/70">
-              СУММА МЕЧТЫ: <span style={{ color: "#F4CB2F" }}>{targetAmount}</span>
-              <span style={{ color: "#B88300" }}> ★</span>
-            </p>
+            <div className="mt-1 flex items-end gap-1 overflow-hidden whitespace-nowrap">
+              <span className="text-[11px] font-black uppercase tracking-[0.1em] text-white/70">СУММА МЕЧТЫ:</span>
+              <span className={`inline-flex items-end gap-0.5 font-black leading-none ${sumValueClass}`}>
+                <span style={{ color: "#F4CB2F" }}>{targetAmount}</span>
+                <span style={{ color: "#B88300" }}>★</span>
+              </span>
+            </div>
             {isReached && <p className="mt-1 text-[11px] font-black uppercase text-[#FFD700]">ГОТОВО!</p>}
           </div>
         )}
@@ -349,14 +354,23 @@ const DreamCard: React.FC<DreamCardProps> = ({
   }
 
   return (
-    <div
-      className="w-full p-4 rounded-[40px] border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
-      style={{
-        borderColor: isReached ? "#FFD700" : theme.accent,
-        backgroundColor: theme.surface,
-        boxShadow: isReached ? "0 15px 50px rgba(255, 215, 0, 0.3)" : `0 15px 40px ${theme.shadow}`,
-      }}
-    >
+    <>
+      <style>{`
+        @keyframes dreamBorderPulse {
+          0%, 100% { transform: scale(1); box-shadow: 0 15px 44px rgba(255, 215, 0, 0.26); }
+          50% { transform: scale(1.012); box-shadow: 0 20px 56px rgba(255, 215, 0, 0.52); }
+        }
+      `}</style>
+      <div
+        className="w-full p-4 rounded-[40px] border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
+        style={{
+          borderColor: isReached ? "#FFD700" : theme.accent,
+          backgroundColor: theme.surface,
+          boxShadow: isReached ? "0 15px 44px rgba(255, 215, 0, 0.26)" : `0 15px 40px ${theme.shadow}`,
+          animation: isReached ? "dreamBorderPulse 1.15s ease-in-out infinite" : undefined,
+          transformOrigin: "center center",
+        }}
+      >
       {renderHeroPanel()}
 
       {errorMessage && (
@@ -365,16 +379,8 @@ const DreamCard: React.FC<DreamCardProps> = ({
           <span>{errorMessage}</span>
         </div>
       )}
-
-      {isReached && (
-        <button
-          onClick={onClaimDream}
-          className="mt-3 w-full py-3.5 rounded-2xl bg-[#FFD700] text-black font-black uppercase tracking-[0.3em] text-[10px] animate-bounce shadow-[0_10px_30px_rgba(255,215,0,0.4)]"
-        >
-          ПОЛУЧИТЬ ПРИЗ 🏆
-        </button>
-      )}
-    </div>
+      </div>
+    </>
   );
 };
 
