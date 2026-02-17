@@ -207,11 +207,17 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
                   >
                     <div className="flex items-center space-x-4">
                       <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shrink-0 shadow-lg">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-white/5 flex items-center justify-center text-xl">
+                            {item.icon || "🎁"}
+                          </div>
+                        )}
                       </div>
                       <div className="flex-grow">
                         <h4 className="text-base font-black uppercase tracking-tight leading-none mb-1">

@@ -322,23 +322,75 @@ useEffect(() => {
             timestamp: ts,
           };
         });
+      const rewardImageById = new Map<string, string>();
+      const rewardImageByTitle = new Map<string, string>();
+      for (const reward of apiRewards) {
+        const image = String(reward?.image_url ?? reward?.image ?? "").trim();
+        if (!image) continue;
+
+        const rewardId = String(reward?.id ?? "").trim();
+        const rewardTitle = String(reward?.title ?? "").trim().toLowerCase();
+        if (rewardId) rewardImageById.set(rewardId, image);
+        if (rewardTitle) rewardImageByTitle.set(rewardTitle, image);
+      }
+
       // 🎁 ВОССТАНАВЛИВАЕМ "НА ВРУЧЕНИЕ" ИЗ БЭКА:
       // inventory = все покупки со статусом pending
-      const pendingInventory = historyItems
-        .filter((x: any) => x?.type === "purchase" && x?.status === "pending")
-        .map((p: any) => ({
-          id: String(p.id),                 // чтобы React key был стабильный
-          purchaseId: String(p.id),          // важно для confirmReceived
-          title: String(p.title ?? "Награда"),
-          icon: String(p.icon ?? "🎁"),
-          price: Math.abs(Number(p.amount ?? 0)), // amount на бэке отрицательный
-        }));
+      const pendingPurchases = historyItems.filter(
+        (x: any) => x?.type === "purchase" && x?.status === "pending"
+      );
 
       if (!cancelled) {
-        setUser((prev: any) => ({
-          ...prev,
-          inventory: pendingInventory, // <- теперь "на вручение" после refresh не пропадёт
-        }));
+        setUser((prev: any) => {
+          const prevImageByPurchaseId = new Map<string, string>();
+          for (const item of prev?.inventory ?? []) {
+            const purchaseId = String(item?.purchaseId ?? "");
+            const image = String(item?.image ?? "").trim();
+            if (purchaseId && image) prevImageByPurchaseId.set(purchaseId, image);
+          }
+
+          const pendingInventory = pendingPurchases.map((p: any, idx: number) => {
+            const purchaseId = String(p?.id ?? p?.purchase_id ?? "").trim();
+            const stablePurchaseId = purchaseId || `purchase_${idx}_${String(p?.created_at ?? "")}`;
+            const rewardId = String(p?.reward_id ?? "");
+            const title = String(p?.title ?? p?.reward_title ?? "Награда");
+            const titleKey = title.trim().toLowerCase();
+
+            const imageFromHistory = [
+              p?.image_url,
+              p?.reward_image_url,
+              p?.reward_image,
+              p?.image,
+            ]
+              .map((value) => String(value ?? "").trim())
+              .find(Boolean);
+
+            const image =
+              imageFromHistory ||
+              rewardImageById.get(rewardId) ||
+              rewardImageByTitle.get(titleKey) ||
+              prevImageByPurchaseId.get(stablePurchaseId) ||
+              `https://picsum.photos/seed/reward_${stablePurchaseId || rewardId || titleKey}/600/600`;
+
+            return {
+              id: stablePurchaseId, // чтобы React key был стабильный
+              purchaseId: stablePurchaseId, // важно для confirmReceived
+              title,
+              icon: String(p?.icon ?? p?.reward_icon ?? "🎁"),
+              price: Math.abs(Number(p?.amount ?? p?.price ?? 0)), // amount на бэке отрицательный
+              image,
+            };
+          });
+
+          return {
+            ...prev,
+            inventory: pendingInventory, // <- теперь "на вручение" после refresh не пропадёт
+            notifications: {
+              ...prev.notifications,
+              wallet: pendingInventory.length,
+            },
+          };
+        });
       }
       const merged = [...localHistory, ...apiPlus, ...apiMinus]
         .sort((a, b) => b.timestamp - a.timestamp)
@@ -366,7 +418,7 @@ useEffect(() => {
   return () => {
     cancelled = true;
   };
-}, [kidCode, localHistory]);
+}, [apiRewards, kidCode, localHistory]);
 
   // helper для создания транзакции
   const addTransaction = (

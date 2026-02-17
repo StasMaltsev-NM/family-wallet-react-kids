@@ -18,6 +18,13 @@ export type KidDreamApi = {
   image_prompt?: string | null;
 };
 
+export type KidDreamImageResponse = {
+  message?: string;
+  image_url?: string | null;
+  image_ready?: boolean;
+  dream?: KidDreamApi | null;
+};
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -187,6 +194,22 @@ export const kidApi = {
       method: "DELETE",
       headers: { "X-Invite-Code": inviteCode },
       body: JSON.stringify({ dream_id: dreamId }),
+    });
+  },
+
+  regenerateDreamImage(inviteCode: string, dreamId: string) {
+    const payload = JSON.stringify({ dream_id: dreamId });
+    const call = (path: string) =>
+      request<KidDreamImageResponse>(path, {
+        method: "POST",
+        headers: { "X-Invite-Code": inviteCode },
+        body: payload,
+      });
+
+    return call("/api/dreams/regenerate-image").catch((err) => {
+      const msg = err instanceof Error ? err.message : "";
+      if (!msg.includes("HTTP 404")) throw err;
+      return call("/api/dreams/generate-image");
     });
   },
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Rocket, Star, Trash2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { KidDreamApi, kidApi } from "../services/api";
@@ -41,6 +41,11 @@ const normalizeError = (err: unknown): string => {
   return raw;
 };
 
+const getRawErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message || "";
+  return String(err ?? "");
+};
+
 const DreamCard: React.FC<DreamCardProps> = ({
   inviteCode,
   dream: _dream,
@@ -59,6 +64,10 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isDreamImageSyncing, setIsDreamImageSyncing] = useState(false);
+  const [isDreamImageUnsupported, setIsDreamImageUnsupported] = useState(false);
+  const dreamImageRequestInFlight = useRef(false);
+  const lastDreamImageRequestAt = useRef(0);
 
   const loadDream = useCallback(
     async (silent = false) => {
@@ -127,6 +136,66 @@ const DreamCard: React.FC<DreamCardProps> = ({
         background:
           "radial-gradient(circle at 28% 28%, rgba(255,196,78,0.4), transparent 45%), radial-gradient(circle at 72% 78%, rgba(255,180,62,0.18), transparent 42%), linear-gradient(160deg, #12141b 0%, #1c2029 54%, #11131a 100%)",
       };
+
+  useEffect(() => {
+    setIsDreamImageUnsupported(false);
+    if (!dreamId) {
+      setIsDreamImageSyncing(false);
+      return;
+    }
+  }, [dreamId]);
+
+  const requestDreamImageRefresh = useCallback(async () => {
+    if (!inviteCode || !dreamId || !dreamTitle || dreamImageUrl) return;
+    if (!(uiStatus === "pending" || uiStatus === "active")) return;
+    if (isDreamImageUnsupported || dreamImageRequestInFlight.current) return;
+
+    const now = Date.now();
+    if (now - lastDreamImageRequestAt.current < 5000) return;
+    lastDreamImageRequestAt.current = now;
+
+    dreamImageRequestInFlight.current = true;
+    setIsDreamImageSyncing(true);
+
+    try {
+      const res = await kidApi.regenerateDreamImage(inviteCode, dreamId);
+      const nextDream = res?.dream ?? null;
+      if (nextDream) {
+        dreamCache.set(inviteCode, nextDream);
+        setServerDream(nextDream);
+      }
+      await loadDream(true);
+    } catch (err) {
+      const raw = getRawErrorMessage(err);
+      if (raw.includes("HTTP 404") || raw.includes("HTTP 405")) {
+        setIsDreamImageUnsupported(true);
+      } else if (raw.includes("HTTP 401") || raw.includes("HTTP 403")) {
+        setIsDreamImageUnsupported(true);
+      } else {
+        setErrorMessage(normalizeError(err));
+      }
+    } finally {
+      dreamImageRequestInFlight.current = false;
+      setIsDreamImageSyncing(false);
+    }
+  }, [dreamId, dreamImageUrl, dreamTitle, inviteCode, isDreamImageUnsupported, loadDream, uiStatus]);
+
+  useEffect(() => {
+    if (dreamImageUrl || isDreamImageUnsupported) return;
+    if (!(uiStatus === "pending" || uiStatus === "active")) return;
+    void requestDreamImageRefresh();
+  }, [dreamImageUrl, isDreamImageUnsupported, requestDreamImageRefresh, uiStatus]);
+
+  useEffect(() => {
+    if (dreamImageUrl || isDreamImageUnsupported) return;
+    if (!(uiStatus === "pending" || uiStatus === "active")) return;
+
+    const timer = window.setInterval(() => {
+      void requestDreamImageRefresh();
+    }, 18000);
+
+    return () => window.clearInterval(timer);
+  }, [dreamImageUrl, isDreamImageUnsupported, requestDreamImageRefresh, uiStatus]);
 
   useEffect(() => {
     if (isReached) {
@@ -250,6 +319,11 @@ const DreamCard: React.FC<DreamCardProps> = ({
         )}
 
         {statusHint && <p className="mt-3 text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>}
+        {isDreamImageSyncing && !dreamImageUrl && (
+          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/65">
+            Обновляем изображение мечты...
+          </p>
+        )}
       </div>
 
       <div className="relative z-10 mt-3 h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
