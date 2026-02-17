@@ -218,24 +218,37 @@ const DreamCard: React.FC<DreamCardProps> = ({
       {renderDeleteButton()}
 
       <div className="relative z-10 pr-14">
-        <h3 className="text-[38px] leading-[0.95] font-black uppercase italic tracking-tight text-white truncate">
+        <h3 className="text-[30px] leading-[0.94] font-black uppercase italic tracking-tight text-white break-words">
           {dreamTitle}
         </h3>
         <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
           ТВОЯ ГЛАВНАЯ МЕЧТА
         </p>
-        <div className="mt-8 flex items-end justify-between gap-3">
-          <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/70">ПРОГРЕСС</span>
-          <span className="text-[42px] leading-none font-black italic text-[#F0CF28]">
-            {statusHint ? "..." : `${progressRounded}%`}
-          </span>
-        </div>
-        <p className="mt-1 text-xl leading-none font-black uppercase tracking-[0.1em] text-white">
-          ПРОГРЕСС И МЕЧТА
-        </p>
-        {statusHint && (
-          <p className="mt-2 text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>
+
+        {uiStatus === "active" && (
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/40 px-3 py-2">
+            <div className="min-w-0">
+              <div className="flex items-end gap-2 flex-wrap">
+                <span className="text-[18px] leading-none font-black italic uppercase" style={{ color: "#FFEA66" }}>
+                  ОСТАЛОСЬ:
+                </span>
+                <span className="text-[34px] leading-none font-black italic" style={{ color: "#FFEA66" }}>
+                  {remainingAmount}
+                </span>
+                <span className="text-[30px] leading-none font-black italic" style={{ color: "#D9A700" }}>
+                  ★
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] font-black uppercase tracking-[0.1em] text-white/70">
+                СУММА МЕЧТЫ: <span style={{ color: "#F4CB2F" }}>{targetAmount}</span>
+                <span style={{ color: "#B88300" }}> ★</span>
+              </p>
+            </div>
+            {isReached && <span className="text-[11px] font-black uppercase text-[#FFD700]">ГОТОВО!</span>}
+          </div>
         )}
+
+        {statusHint && <p className="mt-4 text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>}
       </div>
 
       <div className="relative z-10 mt-4 h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
@@ -250,6 +263,10 @@ const DreamCard: React.FC<DreamCardProps> = ({
         >
           <div className="absolute inset-0 bg-white/15 animate-pulse" />
         </div>
+      </div>
+      <div className="relative z-10 mt-2 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.16em] text-white/65">
+        <span>ПРОГРЕСС</span>
+        <span>{progressRounded}%</span>
       </div>
     </div>
   );
@@ -350,20 +367,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
           <span>{errorMessage}</span>
         </div>
       )}
-
-      <div className="mt-6 flex justify-between items-center bg-black/30 p-4 rounded-3xl border border-white/5">
-        <div className="flex flex-col">
-          <span className="text-2xl font-black italic uppercase leading-none">
-            <span style={{ color: "#FFEA66" }}>Осталось: {remainingAmount}</span>
-            <span style={{ color: "#D9A700" }}> ★</span>
-          </span>
-          <span className="mt-2 text-xs font-black uppercase tracking-wider text-white/70">
-            Сумма мечты: <span style={{ color: "#F4CB2F" }}>{targetAmount}</span>
-            <span style={{ color: "#B88300" }}> ★</span>
-          </span>
-        </div>
-        {isReached && <div className="text-[10px] font-black uppercase text-[#FFD700] animate-pulse">ГОТОВО!</div>}
-      </div>
 
       {isReached && (
         <button
