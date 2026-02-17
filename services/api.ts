@@ -14,6 +14,8 @@ export type KidDreamApi = {
   target_amount?: number;
   current_amount?: number;
   icon?: string | null;
+  image_url?: string | null;
+  image_prompt?: string | null;
 };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {

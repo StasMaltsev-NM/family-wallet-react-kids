@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Clock3, Rocket, Star, Trash2 } from "lucide-react";
+import { AlertCircle, Rocket, Star, Trash2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { KidDreamApi, kidApi } from "../services/api";
 import { AppTheme, Dream } from "../types";
@@ -114,7 +114,20 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const currentAmount = Math.max(0, toNumber(serverDream?.current_amount, balance));
   const remainingAmount = Math.max(0, targetAmount - currentAmount);
   const progress = targetAmount > 0 ? Math.min((currentAmount / targetAmount) * 100, 100) : 0;
+  const progressRounded = Math.round(progress);
   const isReached = uiStatus === "active" && targetAmount > 0 && remainingAmount <= 0;
+  const dreamImageUrl =
+    typeof serverDream?.image_url === "string" ? String(serverDream.image_url).trim() : "";
+  const heroBackgroundStyle = dreamImageUrl
+    ? {
+        backgroundImage: `linear-gradient(160deg, rgba(10,12,16,0.48), rgba(12,13,17,0.74)), radial-gradient(circle at 30% 30%, rgba(255,198,88,0.32), transparent 46%), url(${dreamImageUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {
+        background:
+          "radial-gradient(circle at 28% 28%, rgba(255,196,78,0.4), transparent 45%), radial-gradient(circle at 72% 78%, rgba(255,180,62,0.18), transparent 42%), linear-gradient(160deg, #12141b 0%, #1c2029 54%, #11131a 100%)",
+      };
 
   useEffect(() => {
     if (isReached) {
@@ -195,24 +208,49 @@ const DreamCard: React.FC<DreamCardProps> = ({
     </button>
   );
 
-  const renderVisualSlot = () => (
-    <div className="mt-5 rounded-3xl border border-white/10 bg-black/25 p-4">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/50">Dream Image Slot</p>
-      <div className="mt-3 h-32 rounded-2xl border border-dashed border-yellow-400/40 bg-gradient-to-br from-yellow-300/15 via-amber-400/5 to-black/40 px-4 flex items-center justify-center text-center">
-        <div>
-          <p className="text-sm font-black italic text-yellow-100 truncate max-w-[220px]">{dreamTitle || "Новая мечта"}</p>
-          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
-            Контейнер под генерацию (Gemini через backend)
-          </p>
+  const renderHeroPanel = (statusHint?: string) => (
+    <div
+      className="relative overflow-hidden rounded-[30px] border border-white/10 px-4 pt-4 pb-5"
+      style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 30px rgba(0,0,0,0.28)" }}
+    >
+      <div className="absolute inset-0" style={heroBackgroundStyle} />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/45 to-black/70" />
+      {renderDeleteButton()}
+
+      <div className="relative z-10 pr-14">
+        <h3 className="text-[38px] leading-[0.95] font-black uppercase italic tracking-tight text-white truncate">
+          {dreamTitle}
+        </h3>
+        <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
+          ТВОЯ ГЛАВНАЯ МЕЧТА
+        </p>
+        <div className="mt-8 flex items-end justify-between gap-3">
+          <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/70">ПРОГРЕСС</span>
+          <span className="text-[42px] leading-none font-black italic text-[#F0CF28]">
+            {statusHint ? "..." : `${progressRounded}%`}
+          </span>
+        </div>
+        <p className="mt-1 text-xl leading-none font-black uppercase tracking-[0.1em] text-white">
+          ПРОГРЕСС И МЕЧТА
+        </p>
+        {statusHint && (
+          <p className="mt-2 text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>
+        )}
+      </div>
+
+      <div className="relative z-10 mt-4 h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
+        <div
+          className="h-full rounded-full transition-all duration-1000 relative"
+          style={{
+            width: `${progress}%`,
+            background: isReached
+              ? "linear-gradient(90deg, #FFA500, #FFD700)"
+              : `linear-gradient(90deg, ${theme.secondary}, ${theme.accent})`,
+          }}
+        >
+          <div className="absolute inset-0 bg-white/15 animate-pulse" />
         </div>
       </div>
-      <button
-        type="button"
-        disabled
-        className="mt-3 w-full rounded-2xl border border-yellow-300/25 bg-yellow-300/10 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-200/70"
-      >
-        Скоро: сгенерировать образ
-      </button>
     </div>
   );
 
@@ -279,50 +317,32 @@ const DreamCard: React.FC<DreamCardProps> = ({
   if (uiStatus === "pending") {
     return (
       <div
-        className="relative w-full p-8 rounded-[40px] border-4 animate-in fade-in zoom-in-95 duration-300"
+        className="w-full p-5 rounded-[40px] border-4 animate-in fade-in zoom-in-95 duration-300"
         style={{
           borderColor: "rgba(250,204,21,0.55)",
           backgroundColor: "rgba(0,0,0,0.35)",
           boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
         }}
       >
-        {renderDeleteButton()}
-        <div className="flex items-center gap-3">
-          <Clock3 size={22} className="text-yellow-300 animate-pulse" />
-          <h3 className="text-lg font-black uppercase tracking-[0.14em] text-yellow-200">В ОЖИДАНИИ РОДИТЕЛЯ</h3>
-        </div>
-        <p className="mt-4 text-base font-black italic text-white/90">{dreamTitle || "Новая мечта"}</p>
+        {renderHeroPanel("В ОЖИДАНИИ РОДИТЕЛЯ")}
         <p className="mt-2 text-xs font-black uppercase tracking-[0.15em] text-white/50">
           Проверяем одобрение каждые 8 секунд
         </p>
         {errorMessage && <p className="mt-3 text-sm font-bold text-rose-300">{errorMessage}</p>}
-        {renderVisualSlot()}
       </div>
     );
   }
 
   return (
     <div
-      className="w-full p-6 rounded-[40px] border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
+      className="w-full p-5 rounded-[40px] border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
       style={{
         borderColor: isReached ? "#FFD700" : theme.accent,
         backgroundColor: theme.surface,
         boxShadow: isReached ? "0 15px 50px rgba(255, 215, 0, 0.3)" : `0 15px 40px ${theme.shadow}`,
       }}
     >
-      {renderDeleteButton()}
-
-      <div className="flex justify-between items-start mb-6 pr-10">
-        <div className="flex items-center space-x-4">
-          <div className="text-5xl group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl">
-            {serverDream?.icon || dream.icon || "🚀"}
-          </div>
-          <div>
-            <h3 className="text-2xl font-black uppercase italic leading-none truncate max-w-[180px]">{dreamTitle}</h3>
-            <p className="text-[9px] font-black uppercase opacity-40 mt-1 tracking-[0.2em]">Твоя главная мечта</p>
-          </div>
-        </div>
-      </div>
+      {renderHeroPanel()}
 
       {errorMessage && (
         <div className="mb-4 flex items-start gap-2 rounded-2xl border border-rose-400/40 bg-rose-400/10 p-3 text-xs font-bold text-rose-200">
@@ -330,26 +350,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
           <span>{errorMessage}</span>
         </div>
       )}
-
-      <div className="relative pt-2">
-        <div className="flex justify-between text-[10px] font-black uppercase mb-2 opacity-50 tracking-widest">
-          <span>Прогресс</span>
-          <span style={{ color: "#FFD700" }} className="text-sm font-black italic">{Math.round(progress)}%</span>
-        </div>
-        <div className="h-4 w-full rounded-full bg-black/40 overflow-hidden p-1 border border-white/10 shadow-inner">
-          <div
-            className="h-full rounded-full transition-all duration-1000 relative"
-            style={{
-              width: `${progress}%`,
-              background: isReached
-                ? "linear-gradient(90deg, #FFA500, #FFD700)"
-                : `linear-gradient(90deg, ${theme.secondary}, ${theme.accent})`,
-            }}
-          >
-            <div className="absolute inset-0 bg-white/20 animate-pulse" />
-          </div>
-        </div>
-      </div>
 
       <div className="mt-6 flex justify-between items-center bg-black/30 p-4 rounded-3xl border border-white/5">
         <div className="flex flex-col">
@@ -364,8 +364,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
         </div>
         {isReached && <div className="text-[10px] font-black uppercase text-[#FFD700] animate-pulse">ГОТОВО!</div>}
       </div>
-
-      {renderVisualSlot()}
 
       {isReached && (
         <button
