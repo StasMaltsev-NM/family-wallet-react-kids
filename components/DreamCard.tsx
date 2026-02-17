@@ -210,15 +210,15 @@ const DreamCard: React.FC<DreamCardProps> = ({
 
   const renderHeroPanel = (statusHint?: string) => (
     <div
-      className="relative overflow-hidden rounded-[30px] border border-white/10 px-4 pt-4 pb-5"
+      className="relative overflow-hidden rounded-[30px] border border-white/10 px-4 pt-4 pb-4"
       style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 30px rgba(0,0,0,0.28)" }}
     >
       <div className="absolute inset-0" style={heroBackgroundStyle} />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/45 to-black/70" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/45 to-black/75" />
       {renderDeleteButton()}
 
       <div className="relative z-10 pr-14">
-        <h3 className="text-[30px] leading-[0.94] font-black uppercase italic tracking-tight text-white break-words">
+        <h3 className="text-[26px] leading-[0.96] font-black uppercase italic tracking-tight text-white break-words">
           {dreamTitle}
         </h3>
         <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
@@ -226,32 +226,30 @@ const DreamCard: React.FC<DreamCardProps> = ({
         </p>
 
         {uiStatus === "active" && (
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/40 px-3 py-2">
-            <div className="min-w-0">
-              <div className="flex items-end gap-2 flex-wrap">
-                <span className="text-[18px] leading-none font-black italic uppercase" style={{ color: "#FFEA66" }}>
-                  ОСТАЛОСЬ:
-                </span>
-                <span className="text-[34px] leading-none font-black italic" style={{ color: "#FFEA66" }}>
-                  {remainingAmount}
-                </span>
-                <span className="text-[30px] leading-none font-black italic" style={{ color: "#D9A700" }}>
-                  ★
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] font-black uppercase tracking-[0.1em] text-white/70">
-                СУММА МЕЧТЫ: <span style={{ color: "#F4CB2F" }}>{targetAmount}</span>
-                <span style={{ color: "#B88300" }}> ★</span>
-              </p>
+          <div className="mt-3 w-[76%] rounded-[26px] border border-white/10 bg-black/52 px-3 py-3">
+            <div className="flex items-end gap-2 leading-none flex-wrap">
+              <span className="text-[17px] font-black italic uppercase" style={{ color: "#FFEA66" }}>
+                ОСТАЛОСЬ:
+              </span>
+              <span className="text-[44px] font-black italic" style={{ color: "#FFEA66" }}>
+                {remainingAmount}
+              </span>
+              <span className="text-[56px] font-black leading-none" style={{ color: "#D9A700" }}>
+                ★
+              </span>
             </div>
-            {isReached && <span className="text-[11px] font-black uppercase text-[#FFD700]">ГОТОВО!</span>}
+            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.1em] text-white/70">
+              СУММА МЕЧТЫ: <span style={{ color: "#F4CB2F" }}>{targetAmount}</span>
+              <span style={{ color: "#B88300" }}> ★</span>
+            </p>
+            {isReached && <p className="mt-1 text-[11px] font-black uppercase text-[#FFD700]">ГОТОВО!</p>}
           </div>
         )}
 
-        {statusHint && <p className="mt-4 text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>}
+        {statusHint && <p className="mt-3 text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>}
       </div>
 
-      <div className="relative z-10 mt-4 h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
+      <div className="relative z-10 mt-3 h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
         <div
           className="h-full rounded-full transition-all duration-1000 relative"
           style={{
@@ -264,7 +262,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
           <div className="absolute inset-0 bg-white/15 animate-pulse" />
         </div>
       </div>
-      <div className="relative z-10 mt-2 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.16em] text-white/65">
+      <div className="relative z-10 mt-2 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.15em] text-white/65">
         <span>ПРОГРЕСС</span>
         <span>{progressRounded}%</span>
       </div>
@@ -334,7 +332,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   if (uiStatus === "pending") {
     return (
       <div
-        className="w-full p-5 rounded-[40px] border-4 animate-in fade-in zoom-in-95 duration-300"
+        className="w-full p-4 rounded-[40px] border-4 animate-in fade-in zoom-in-95 duration-300"
         style={{
           borderColor: "rgba(250,204,21,0.55)",
           backgroundColor: "rgba(0,0,0,0.35)",
@@ -352,7 +350,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
 
   return (
     <div
-      className="w-full p-5 rounded-[40px] border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
+      className="w-full p-4 rounded-[40px] border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
       style={{
         borderColor: isReached ? "#FFD700" : theme.accent,
         backgroundColor: theme.surface,
@@ -371,7 +369,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
       {isReached && (
         <button
           onClick={onClaimDream}
-          className="mt-4 w-full py-4 rounded-2xl bg-[#FFD700] text-black font-black uppercase tracking-[0.3em] text-[10px] animate-bounce shadow-[0_10px_30px_rgba(255,215,0,0.4)]"
+          className="mt-3 w-full py-3.5 rounded-2xl bg-[#FFD700] text-black font-black uppercase tracking-[0.3em] text-[10px] animate-bounce shadow-[0_10px_30px_rgba(255,215,0,0.4)]"
         >
           ПОЛУЧИТЬ ПРИЗ 🏆
         </button>
