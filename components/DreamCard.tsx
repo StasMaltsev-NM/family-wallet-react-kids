@@ -228,19 +228,19 @@ const DreamCard: React.FC<DreamCardProps> = ({
         </p>
 
         {uiStatus === "active" && (
-          <div className="mt-3 w-[92%] rounded-[28px] bg-black/32 px-4 py-4 backdrop-blur-[1.5px]">
-            <div className="flex items-end gap-2 leading-none whitespace-nowrap overflow-hidden">
+          <div className="mt-3 w-full rounded-[28px] bg-black/26 px-4 py-4 backdrop-blur-[1.5px]">
+            <div className="flex items-end gap-1.5 leading-none whitespace-nowrap">
               <span className="text-[17px] font-black italic uppercase" style={{ color: "#FFEA66" }}>
                 ОСТАЛОСЬ:
               </span>
               <span className="text-[44px] font-black italic" style={{ color: "#FFEA66" }}>
                 {remainingAmount}
               </span>
-              <span className="text-[54px] font-black leading-none" style={{ color: "#D9A700" }}>
+              <span className="text-[50px] font-black leading-none" style={{ color: "#D9A700" }}>
                 ★
               </span>
             </div>
-            <div className="mt-1 flex items-end gap-1 overflow-hidden whitespace-nowrap">
+            <div className="mt-1 flex items-end gap-1 whitespace-nowrap">
               <span className="text-[11px] font-black uppercase tracking-[0.1em] text-white/70">СУММА МЕЧТЫ:</span>
               <span className={`inline-flex items-end gap-0.5 font-black leading-none ${sumValueClass}`}>
                 <span style={{ color: "#F4CB2F" }}>{targetAmount}</span>
