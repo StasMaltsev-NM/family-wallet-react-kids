@@ -15,7 +15,6 @@ interface DreamCardProps {
 }
 
 type DreamUiStatus = "none" | "pending" | "active";
-type DreamFormMode = "create" | "recreate";
 
 const ACTIVE_EXISTING_ERROR = "У ребёнка уже есть активная мечта";
 const dreamCache = new Map<string, KidDreamApi | null>();
@@ -44,8 +43,8 @@ const normalizeError = (err: unknown): string => {
 
 const DreamCard: React.FC<DreamCardProps> = ({
   inviteCode,
-  dream,
-  balance,
+  dream: _dream,
+  balance: _balance,
   theme,
   onSaveDream: _onSaveDream,
   onDeleteDream: _onDeleteDream,
@@ -60,7 +59,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [formMode, setFormMode] = useState<DreamFormMode>("create");
 
   const loadDream = useCallback(
     async (silent = false) => {
@@ -74,7 +72,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
         const nextDream = res?.dream ?? null;
         dreamCache.set(inviteCode, nextDream);
         setServerDream(nextDream);
-        if (nextDream) setFormMode("create");
         setErrorMessage("");
       } catch (err) {
         setErrorMessage(normalizeError(err));
@@ -109,9 +106,9 @@ const DreamCard: React.FC<DreamCardProps> = ({
   }, [uiStatus, loadDream]);
 
   const dreamId = String(serverDream?.id ?? "");
-  const dreamTitle = String(serverDream?.title ?? dream.title ?? "");
-  const targetAmount = Math.max(0, toNumber(serverDream?.target_amount, dream.goal));
-  const currentAmount = Math.max(0, toNumber(serverDream?.current_amount, balance));
+  const dreamTitle = String(serverDream?.title ?? "");
+  const targetAmount = Math.max(0, toNumber(serverDream?.target_amount, 0));
+  const currentAmount = Math.max(0, toNumber(serverDream?.current_amount, 0));
   const remainingAmount = Math.max(0, targetAmount - currentAmount);
   const progress = targetAmount > 0 ? Math.min((currentAmount / targetAmount) * 100, 100) : 0;
   const progressRounded = Math.round(progress);
@@ -166,8 +163,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
       dreamCache.set(inviteCode, createdDream);
       setServerDream(createdDream);
       setInputTitle("");
-      setFormMode("create");
-      void loadDream(true);
     } catch (err) {
       setErrorMessage(normalizeError(err));
     } finally {
@@ -185,14 +180,17 @@ const DreamCard: React.FC<DreamCardProps> = ({
       return;
     }
 
+    const previousDream = serverDream;
+    dreamCache.set(inviteCode, null);
+    setServerDream(null);
+
     setIsDeleting(true);
     setErrorMessage("");
     try {
       await kidApi.deleteDream(inviteCode, dreamId);
-      dreamCache.set(inviteCode, null);
-      setServerDream(null);
-      setFormMode("recreate");
     } catch (err) {
+      dreamCache.set(inviteCode, previousDream);
+      setServerDream(previousDream);
       setErrorMessage(normalizeError(err));
     } finally {
       setIsDeleting(false);
@@ -286,7 +284,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
   }
 
   if (uiStatus === "none") {
-    const actionLabel = formMode === "recreate" ? "OK" : "Создать";
     return (
       <div
         className="w-full p-8 rounded-[40px] border-2 bg-black/40 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500"
@@ -307,7 +304,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
               value={inputTitle}
               onChange={(e) => setInputTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void handleCreate()}
-              className="w-full p-6 rounded-2xl bg-white/5 border border-white/10 text-base font-bold focus:outline-none focus:border-yellow-500/50 transition-all text-white placeholder:opacity-20"
+              className="w-full p-6 rounded-2xl bg-white/5 border border-yellow-400/65 text-base font-bold focus:outline-none focus:border-yellow-300 transition-all text-white placeholder:opacity-20"
             />
           </div>
 
@@ -321,13 +318,12 @@ const DreamCard: React.FC<DreamCardProps> = ({
           <button
             onClick={() => void handleCreate()}
             disabled={!inputTitle.trim() || isSubmitting}
-            className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] flex items-center justify-center space-x-3 transition-all ${
+            className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] flex items-center justify-center transition-all ${
               inputTitle.trim() && !isSubmitting ? "active:scale-95 shadow-lg" : "opacity-20 grayscale"
             }`}
             style={{ backgroundColor: theme.accent, color: theme.bg }}
           >
-            <Rocket size={20} />
-            <span>{isSubmitting ? "Создание..." : actionLabel}</span>
+            <Rocket size={24} className={isSubmitting ? "animate-pulse" : ""} />
           </button>
         </div>
       </div>
