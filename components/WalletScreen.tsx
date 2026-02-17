@@ -91,8 +91,8 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
   const pendingTasks = tasks.filter((t) => t.status === TaskStatus.WAITING);
 
   return (
-    <div className="flex flex-col px-6 pt-12 space-y-2">
-      <div className="mb-1">
+    <div className="flex flex-col px-6 pt-8 space-y-2">
+      <div className="mb-0">
         <div
           className="inline-flex items-center gap-3 rounded-2xl border px-4 py-2.5"
           style={{
