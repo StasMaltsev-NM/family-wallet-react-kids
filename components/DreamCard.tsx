@@ -184,6 +184,17 @@ const DreamCard: React.FC<DreamCardProps> = ({
     }
   };
 
+  const renderDeleteButton = () => (
+    <button
+      onClick={() => void handleDelete()}
+      disabled={isDeleting || !dreamId}
+      className="absolute top-4 right-4 z-20 rounded-xl border border-slate-400/55 bg-slate-900/85 p-2.5 text-slate-100 shadow-[0_6px_18px_rgba(0,0,0,0.45)] transition-all hover:border-slate-200 hover:text-white disabled:opacity-45"
+      title="Удалить мечту"
+    >
+      <Trash2 size={18} />
+    </button>
+  );
+
   const renderVisualSlot = () => (
     <div className="mt-5 rounded-3xl border border-white/10 bg-black/25 p-4">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/50">Dream Image Slot</p>
@@ -268,13 +279,14 @@ const DreamCard: React.FC<DreamCardProps> = ({
   if (uiStatus === "pending") {
     return (
       <div
-        className="w-full p-8 rounded-[40px] border-4 animate-in fade-in zoom-in-95 duration-300"
+        className="relative w-full p-8 rounded-[40px] border-4 animate-in fade-in zoom-in-95 duration-300"
         style={{
           borderColor: "rgba(250,204,21,0.55)",
           backgroundColor: "rgba(0,0,0,0.35)",
           boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
         }}
       >
+        {renderDeleteButton()}
         <div className="flex items-center gap-3">
           <Clock3 size={22} className="text-yellow-300 animate-pulse" />
           <h3 className="text-lg font-black uppercase tracking-[0.14em] text-yellow-200">В ОЖИДАНИИ РОДИТЕЛЯ</h3>
@@ -298,14 +310,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
         boxShadow: isReached ? "0 15px 50px rgba(255, 215, 0, 0.3)" : `0 15px 40px ${theme.shadow}`,
       }}
     >
-      <button
-        onClick={() => void handleDelete()}
-        disabled={isDeleting}
-        className="absolute top-4 right-4 z-10 rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300/70 transition-all hover:text-slate-100 hover:border-white/25 disabled:opacity-40"
-        title="Удалить мечту"
-      >
-        <Trash2 size={16} />
-      </button>
+      {renderDeleteButton()}
 
       <div className="flex justify-between items-start mb-6 pr-10">
         <div className="flex items-center space-x-4">
