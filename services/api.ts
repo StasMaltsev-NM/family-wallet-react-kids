@@ -180,6 +180,14 @@ export const kidApi = {
     });
   },
 
+  deleteDream(inviteCode: string, dreamId: string) {
+    return request<{ message?: string }>("/api/dreams/delete", {
+      method: "DELETE",
+      headers: { "X-Invite-Code": inviteCode },
+      body: JSON.stringify({ dream_id: dreamId }),
+    });
+  },
+
   generateMagicImage(
     inviteCode: string,
     body: { world: string; photo?: string | null; prompt?: string }
