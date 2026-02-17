@@ -291,7 +291,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
       style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 30px rgba(0,0,0,0.28)" }}
     >
       <div className="absolute inset-0" style={heroBackgroundStyle} />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/45 to-black/75" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-black/24 to-black/56" />
       {renderDeleteButton()}
 
       <div className="relative z-10 pr-14">
@@ -303,7 +303,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
         </p>
 
         {uiStatus === "active" && (
-          <div className="mt-3 w-full rounded-[28px] border border-white/10 bg-black/18 px-4 py-4 backdrop-blur-[2.2px]">
+          <div className="mt-3 w-full rounded-[28px] bg-black/10 px-4 py-4 backdrop-blur-[1.4px]">
             <div className="flex items-end gap-1.5 leading-none whitespace-nowrap">
               <span className="text-[17px] font-black italic uppercase" style={{ color: "#FFEA66" }}>
                 ОСТАЛОСЬ:
