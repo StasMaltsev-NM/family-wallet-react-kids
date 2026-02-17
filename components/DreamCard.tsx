@@ -158,7 +158,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
     setIsDreamImageSyncing(true);
 
     try {
-      const res = await kidApi.regenerateDreamImage(inviteCode, dreamId);
+      const res = await kidApi.regenerateDreamImage(inviteCode, dreamId, dreamTitle);
       const nextDream = res?.dream ?? null;
       if (nextDream) {
         dreamCache.set(inviteCode, nextDream);
@@ -167,10 +167,18 @@ const DreamCard: React.FC<DreamCardProps> = ({
       await loadDream(true);
     } catch (err) {
       const raw = getRawErrorMessage(err);
-      if (raw.includes("HTTP 404") || raw.includes("HTTP 405")) {
+      const rawLower = raw.toLowerCase();
+      const isMissingRoute =
+        raw.includes("HTTP 404") ||
+        raw.includes("HTTP 405") ||
+        rawLower.includes("not found") ||
+        rawLower.includes("method not allowed");
+      if (isMissingRoute) {
         setIsDreamImageUnsupported(true);
+        setErrorMessage("");
       } else if (raw.includes("HTTP 401") || raw.includes("HTTP 403")) {
         setIsDreamImageUnsupported(true);
+        setErrorMessage("");
       } else {
         setErrorMessage(normalizeError(err));
       }

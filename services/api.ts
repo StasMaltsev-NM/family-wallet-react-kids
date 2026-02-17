@@ -197,18 +197,28 @@ export const kidApi = {
     });
   },
 
-  regenerateDreamImage(inviteCode: string, dreamId: string) {
-    const payload = JSON.stringify({ dream_id: dreamId });
+  regenerateDreamImage(inviteCode: string, dreamId: string, dreamTitle?: string) {
+    const payload = JSON.stringify({
+      dream_id: dreamId,
+      title: dreamTitle || undefined,
+      prompt:
+        `Create a cinematic image of the child's dream "${String(dreamTitle || "").trim()}". ` +
+        "Dark environment, warm spotlight focused on the dream object, high contrast, kid-friendly, clean composition.",
+    });
     const call = (path: string) =>
       request<KidDreamImageResponse>(path, {
         method: "POST",
         headers: { "X-Invite-Code": inviteCode },
         body: payload,
       });
+    const isMissingRouteError = (msg: string) => {
+      const normalized = msg.toLowerCase();
+      return normalized.includes("http 404") || normalized.includes("not found");
+    };
 
     return call("/api/dreams/regenerate-image").catch((err) => {
       const msg = err instanceof Error ? err.message : "";
-      if (!msg.includes("HTTP 404")) throw err;
+      if (!isMissingRouteError(msg)) throw err;
       return call("/api/dreams/generate-image");
     });
   },
