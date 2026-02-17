@@ -228,7 +228,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
         </p>
 
         {uiStatus === "active" && (
-          <div className="mt-3 w-[84%] rounded-[26px] border border-white/16 bg-black/28 px-3.5 py-3.5 backdrop-blur-[1px]">
+          <div className="mt-3 w-[92%] rounded-[28px] bg-black/32 px-4 py-4 backdrop-blur-[1.5px]">
             <div className="flex items-end gap-2 leading-none whitespace-nowrap overflow-hidden">
               <span className="text-[17px] font-black italic uppercase" style={{ color: "#FFEA66" }}>
                 ОСТАЛОСЬ:
