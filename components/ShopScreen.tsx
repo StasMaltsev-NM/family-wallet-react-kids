@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Star, Infinity, CheckCircle2 } from 'lucide-react';
 import { Reward, AppTheme } from '../types';
 
@@ -31,6 +31,51 @@ const withAlpha = (color: string, alpha: number): string => {
     return `rgba(${r}, ${g}, ${b}, ${safeAlpha})`;
   }
   return normalized || `rgba(255,255,255,${safeAlpha})`;
+};
+
+const getOptimizedShopImageSource = (
+  sourceUrl: string
+): { primary: string; fallback: string | null } => {
+  const original = String(sourceUrl ?? "").trim();
+  if (!original) return { primary: "", fallback: null };
+
+  const jpgMatch = original.match(/^(https?:\/\/.+?)\.(jpe?g)(\?.*)?$/i);
+  if (!jpgMatch) return { primary: original, fallback: null };
+
+  const base = jpgMatch[1];
+  const query = jpgMatch[3] ?? "";
+  const webpUrl = `${base}.webp${query}`;
+  return { primary: webpUrl, fallback: original };
+};
+
+type RewardImageProps = {
+  src: string;
+  alt: string;
+  eager?: boolean;
+};
+
+const RewardImage: React.FC<RewardImageProps> = ({ src, alt, eager = false }) => {
+  const optimized = useMemo(() => getOptimizedShopImageSource(src), [src]);
+  const [currentSrc, setCurrentSrc] = useState(optimized.primary);
+
+  useEffect(() => {
+    setCurrentSrc(optimized.primary);
+  }, [optimized.primary]);
+
+  return (
+    <img
+      src={currentSrc}
+      alt={alt}
+      loading={eager ? "eager" : "lazy"}
+      decoding="async"
+      onError={() => {
+        if (optimized.fallback && currentSrc !== optimized.fallback) {
+          setCurrentSrc(optimized.fallback);
+        }
+      }}
+      className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
+    />
+  );
 };
 
 const ShopScreen: React.FC<ShopScreenProps> = ({
@@ -118,12 +163,10 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
             >
               {/* Image Section - Always Colorful now */}
               <div className="relative h-40 overflow-hidden">
-                <img 
-                  src={reward.image} 
-                  alt={reward.title} 
-                  loading={idx < 2 ? "eager" : "lazy"}
-                  decoding="async"
-                  className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110" 
+                <RewardImage
+                  src={reward.image}
+                  alt={reward.title}
+                  eager={idx < 2}
                 />
                 
                 {/* Ribbon for Unique Items */}

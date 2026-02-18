@@ -19,7 +19,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, theme, i
     { id: 'wallet' as TabId, icon: Wallet, label: 'Очки', count: notifications.wallet },
     { id: 'missions' as TabId, icon: ListTodo, label: 'Миссии', count: notifications.missions },
     { id: 'shop' as TabId, icon: Gift, label: 'Магазин', count: notifications.shop },
-    { id: 'editor' as TabId, icon: Wand2, label: 'Магия', count: 0 },
+    { id: 'editor' as TabId, icon: Wand2, label: 'Студия', count: 0 },
     { id: 'profile' as TabId, icon: User, label: 'Я', count: 0 },
   ];
 
