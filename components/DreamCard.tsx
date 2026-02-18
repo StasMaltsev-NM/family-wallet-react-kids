@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Rocket, Star, Trash2 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { DREAM_IMAGE_PROMPT_VERSION_TAG, KidDreamApi, kidApi } from "../services/api";
+import { KidDreamApi, kidApi } from "../services/api";
 import { AppTheme, Dream } from "../types";
 
 interface DreamCardProps {
@@ -68,7 +68,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const [isDreamImageUnsupported, setIsDreamImageUnsupported] = useState(false);
   const dreamImageRequestInFlight = useRef(false);
   const lastDreamImageRequestAt = useRef(0);
-  const promptUpgradeAttemptedByDreamId = useRef<Record<string, boolean>>({});
+  const autoDreamImageRefreshAttempted = useRef<Set<string>>(new Set());
 
   const loadDream = useCallback(
     async (silent = false) => {
@@ -131,17 +131,10 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const sumValueClass = isLargeTargetAmount ? "text-[17px]" : "text-[20px]";
   const dreamImageUrl =
     typeof serverDream?.image_url === "string" ? String(serverDream.image_url).trim() : "";
-  const dreamImagePrompt =
-    typeof serverDream?.image_prompt === "string" ? String(serverDream.image_prompt).trim() : "";
-  const needsPromptUpgrade =
-    Boolean(dreamId) &&
-    Boolean(dreamImageUrl) &&
-    (uiStatus === "pending" || uiStatus === "active") &&
-    !dreamImagePrompt.includes(DREAM_IMAGE_PROMPT_VERSION_TAG);
   const heroBackgroundStyle = dreamImageUrl
     ? {
         backgroundImage: `linear-gradient(160deg, rgba(10,12,16,0.48), rgba(12,13,17,0.74)), radial-gradient(circle at 30% 30%, rgba(255,198,88,0.32), transparent 46%), url(${dreamImageUrl})`,
-        backgroundSize: "cover, cover, 104% 104%",
+        backgroundSize: "cover, cover, cover",
         backgroundPosition: "center, center, center",
         backgroundRepeat: "no-repeat",
       }
@@ -154,27 +147,22 @@ const DreamCard: React.FC<DreamCardProps> = ({
     setIsDreamImageUnsupported(false);
     if (!dreamId) {
       setIsDreamImageSyncing(false);
+      autoDreamImageRefreshAttempted.current.clear();
       return;
     }
   }, [dreamId]);
 
-  const requestDreamImageRefresh = useCallback(async () => {
-    const forcePromptUpgrade =
-      Boolean(dreamId) &&
-      needsPromptUpgrade &&
-      !promptUpgradeAttemptedByDreamId.current[dreamId];
-
+  const requestDreamImageRefresh = useCallback(async (reason: "auto" | "manual" = "auto") => {
     if (!inviteCode || !dreamId || !dreamTitle) return;
-    if (dreamImageUrl && !forcePromptUpgrade) return;
+    if (dreamImageUrl) return;
     if (!(uiStatus === "pending" || uiStatus === "active")) return;
     if (isDreamImageUnsupported || dreamImageRequestInFlight.current) return;
+    if (reason === "auto" && autoDreamImageRefreshAttempted.current.has(dreamId)) return;
+    if (reason === "auto") autoDreamImageRefreshAttempted.current.add(dreamId);
 
     const now = Date.now();
     if (now - lastDreamImageRequestAt.current < 5000) return;
     lastDreamImageRequestAt.current = now;
-    if (forcePromptUpgrade) {
-      promptUpgradeAttemptedByDreamId.current[dreamId] = true;
-    }
 
     dreamImageRequestInFlight.current = true;
     setIsDreamImageSyncing(true);
@@ -216,24 +204,14 @@ const DreamCard: React.FC<DreamCardProps> = ({
       dreamImageRequestInFlight.current = false;
       setIsDreamImageSyncing(false);
     }
-  }, [dreamId, dreamImageUrl, dreamTitle, inviteCode, isDreamImageUnsupported, loadDream, needsPromptUpgrade, uiStatus]);
+  }, [dreamId, dreamImageUrl, dreamTitle, inviteCode, isDreamImageUnsupported, loadDream, uiStatus]);
 
   useEffect(() => {
-    if ((dreamImageUrl && !needsPromptUpgrade) || isDreamImageUnsupported) return;
+    if (!dreamId) return;
+    if (dreamImageUrl || isDreamImageUnsupported) return;
     if (!(uiStatus === "pending" || uiStatus === "active")) return;
-    void requestDreamImageRefresh();
-  }, [dreamImageUrl, isDreamImageUnsupported, needsPromptUpgrade, requestDreamImageRefresh, uiStatus]);
-
-  useEffect(() => {
-    if ((dreamImageUrl && !needsPromptUpgrade) || isDreamImageUnsupported) return;
-    if (!(uiStatus === "pending" || uiStatus === "active")) return;
-
-    const timer = window.setInterval(() => {
-      void requestDreamImageRefresh();
-    }, 18000);
-
-    return () => window.clearInterval(timer);
-  }, [dreamImageUrl, isDreamImageUnsupported, needsPromptUpgrade, requestDreamImageRefresh, uiStatus]);
+    void requestDreamImageRefresh("auto");
+  }, [dreamId, dreamImageUrl, isDreamImageUnsupported, requestDreamImageRefresh, uiStatus]);
 
   useEffect(() => {
     if (isReached) {
@@ -315,10 +293,20 @@ const DreamCard: React.FC<DreamCardProps> = ({
     </button>
   );
 
-  const renderHeroPanel = (statusHint?: string) => (
+  const renderHeroPanel = (
+    statusHint?: string,
+    variant: "default" | "pending" = "default"
+  ) => (
     <div
-      className="relative overflow-hidden rounded-[36px] px-4 pt-4 pb-4"
-      style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 14px 30px rgba(0,0,0,0.24)" }}
+      className={`relative overflow-hidden px-4 pt-4 pb-4 min-h-[340px] flex flex-col ${
+        variant === "pending" ? "rounded-none" : "rounded-[36px]"
+      }`}
+      style={{
+        boxShadow:
+          variant === "pending"
+            ? "none"
+            : "inset 0 1px 0 rgba(255,255,255,0.04), 0 14px 30px rgba(0,0,0,0.24)",
+      }}
     >
       <div className="absolute inset-0" style={heroBackgroundStyle} />
       <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-black/24 to-black/56" />
@@ -364,22 +352,24 @@ const DreamCard: React.FC<DreamCardProps> = ({
         )}
       </div>
 
-      <div className="relative z-10 mt-3 h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
-        <div
-          className="h-full rounded-full transition-all duration-1000 relative"
-          style={{
-            width: `${progress}%`,
-            background: isReached
-              ? "linear-gradient(90deg, #FFA500, #FFD700)"
-              : `linear-gradient(90deg, ${theme.secondary}, ${theme.accent})`,
-          }}
-        >
-          <div className="absolute inset-0 bg-white/15 animate-pulse" />
+      <div className="relative z-10 mt-auto pt-3">
+        <div className="h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
+          <div
+            className="h-full rounded-full transition-all duration-1000 relative"
+            style={{
+              width: `${progress}%`,
+              background: isReached
+                ? "linear-gradient(90deg, #FFA500, #FFD700)"
+                : `linear-gradient(90deg, ${theme.secondary}, ${theme.accent})`,
+            }}
+          >
+            <div className="absolute inset-0 bg-white/15 animate-pulse" />
+          </div>
         </div>
-      </div>
-      <div className="relative z-10 mt-2 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.15em] text-white/65">
-        <span>ПРОГРЕСС</span>
-        <span>{progressRounded}%</span>
+        <div className="mt-2 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.15em] text-white/65">
+          <span>ПРОГРЕСС</span>
+          <span>{progressRounded}%</span>
+        </div>
       </div>
     </div>
   );
@@ -445,17 +435,14 @@ const DreamCard: React.FC<DreamCardProps> = ({
   if (uiStatus === "pending") {
     return (
       <div
-        className="w-full p-0 rounded-[40px] border-4 animate-in fade-in zoom-in-95 duration-300"
+        className="w-full p-0 rounded-[40px] border-4 overflow-hidden animate-in fade-in zoom-in-95 duration-300"
         style={{
           borderColor: "rgba(250,204,21,0.55)",
-          backgroundColor: "rgba(0,0,0,0.35)",
+          backgroundColor: "transparent",
           boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
         }}
       >
-        {renderHeroPanel("В ОЖИДАНИИ РОДИТЕЛЯ")}
-        <p className="mt-2 px-4 text-[10px] font-black uppercase leading-tight tracking-[0.08em] text-white/50">
-          Проверка одобрения: каждые 8 сек
-        </p>
+        {renderHeroPanel("В ОЖИДАНИИ РОДИТЕЛЯ", "pending")}
         {errorMessage && <p className="mt-3 px-4 pb-4 text-sm font-bold text-rose-300">{errorMessage}</p>}
       </div>
     );

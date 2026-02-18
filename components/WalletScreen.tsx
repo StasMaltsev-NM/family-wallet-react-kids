@@ -89,6 +89,8 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
   };
 
   const pendingTasks = tasks.filter((t) => t.status === TaskStatus.WAITING);
+  const balanceDigits = String(Math.abs(Math.trunc(displayBalance))).length;
+  const balanceFontSizePx = Math.max(40, 60 - Math.max(0, balanceDigits - 5) * 6);
 
   return (
     <div className="flex flex-col px-6 pt-2 space-y-2">
@@ -135,18 +137,18 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center space-x-5 mt-4">
+        <div className="mt-4 flex w-full items-center justify-start gap-3 pl-1">
           <div
             className="w-14 h-14 rounded-3xl flex items-center justify-center text-3xl shadow-xl border-2 border-white/10"
             style={{
               background: `linear-gradient(135deg, ${theme.accent}, ${theme.secondary})`,
             }}
           >
-            {currencyIcon}
+            <span className="inline-flex leading-none translate-x-[2.5px] -translate-y-[0.5px]">{currencyIcon}</span>
           </div>
           <span
-            className="text-6xl font-black italic tracking-tighter"
-            style={{ color: theme.text }}
+            className="block min-w-0 whitespace-nowrap font-black italic leading-none"
+            style={{ color: theme.text, fontSize: `${balanceFontSizePx}px`, letterSpacing: "-0.04em" }}
           >
             {displayBalance}
           </span>
