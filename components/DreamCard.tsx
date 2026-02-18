@@ -141,7 +141,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const heroBackgroundStyle = dreamImageUrl
     ? {
         backgroundImage: `linear-gradient(160deg, rgba(10,12,16,0.48), rgba(12,13,17,0.74)), radial-gradient(circle at 30% 30%, rgba(255,198,88,0.32), transparent 46%), url(${dreamImageUrl})`,
-        backgroundSize: "cover, cover, 126% 126%",
+        backgroundSize: "cover, cover, 104% 104%",
         backgroundPosition: "center, center, center",
         backgroundRepeat: "no-repeat",
       }
@@ -317,8 +317,8 @@ const DreamCard: React.FC<DreamCardProps> = ({
 
   const renderHeroPanel = (statusHint?: string) => (
     <div
-      className="relative overflow-hidden rounded-[30px] border border-white/10 px-4 pt-4 pb-4"
-      style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 30px rgba(0,0,0,0.28)" }}
+      className="relative overflow-hidden rounded-[36px] px-4 pt-4 pb-4"
+      style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 14px 30px rgba(0,0,0,0.24)" }}
     >
       <div className="absolute inset-0" style={heroBackgroundStyle} />
       <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-black/24 to-black/56" />
@@ -445,7 +445,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   if (uiStatus === "pending") {
     return (
       <div
-        className="w-full p-4 rounded-[40px] border-4 animate-in fade-in zoom-in-95 duration-300"
+        className="w-full p-0 rounded-[40px] border-4 animate-in fade-in zoom-in-95 duration-300"
         style={{
           borderColor: "rgba(250,204,21,0.55)",
           backgroundColor: "rgba(0,0,0,0.35)",
@@ -453,10 +453,10 @@ const DreamCard: React.FC<DreamCardProps> = ({
         }}
       >
         {renderHeroPanel("В ОЖИДАНИИ РОДИТЕЛЯ")}
-        <p className="mt-2 text-xs font-black uppercase tracking-[0.15em] text-white/50">
+        <p className="mt-2 px-4 text-xs font-black uppercase tracking-[0.15em] text-white/50">
           Проверяем одобрение каждые 8 секунд
         </p>
-        {errorMessage && <p className="mt-3 text-sm font-bold text-rose-300">{errorMessage}</p>}
+        {errorMessage && <p className="mt-3 px-4 pb-4 text-sm font-bold text-rose-300">{errorMessage}</p>}
       </div>
     );
   }
@@ -470,7 +470,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
         }
       `}</style>
       <div
-        className="w-full p-4 rounded-[40px] border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
+        className="w-full p-0 rounded-[40px] border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
         style={{
           borderColor: isReached ? "#FFD700" : theme.accent,
           backgroundColor: theme.surface,
@@ -482,7 +482,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
       {renderHeroPanel()}
 
       {errorMessage && (
-        <div className="mb-4 flex items-start gap-2 rounded-2xl border border-rose-400/40 bg-rose-400/10 p-3 text-xs font-bold text-rose-200">
+        <div className="mx-4 my-3 flex items-start gap-2 rounded-2xl border border-rose-400/40 bg-rose-400/10 p-3 text-xs font-bold text-rose-200">
           <AlertCircle size={14} className="mt-0.5 shrink-0" />
           <span>{errorMessage}</span>
         </div>
