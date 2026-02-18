@@ -141,8 +141,9 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const heroBackgroundStyle = dreamImageUrl
     ? {
         backgroundImage: `linear-gradient(160deg, rgba(10,12,16,0.48), rgba(12,13,17,0.74)), radial-gradient(circle at 30% 30%, rgba(255,198,88,0.32), transparent 46%), url(${dreamImageUrl})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        backgroundSize: "cover, cover, 126% 126%",
+        backgroundPosition: "center, center, center",
+        backgroundRepeat: "no-repeat",
       }
     : {
         background:
