@@ -7,6 +7,19 @@ const API_URL: string =
 
 type AnyJson = Record<string, any>;
 
+const asString = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+
+const firstNonEmptyString = (values: unknown[]): string => {
+  for (const value of values) {
+    const next = asString(value);
+    if (next) return next;
+  }
+  return "";
+};
+
+const toImageDataUrl = (base64: string): string =>
+  base64.startsWith("data:image/") ? base64 : `data:image/png;base64,${base64}`;
+
 export type KidDreamApi = {
   id?: string;
   title?: string;
@@ -25,7 +38,58 @@ export type KidDreamImageResponse = {
   dream?: KidDreamApi | null;
 };
 
+export type KidMagicImageResponse = {
+  success: boolean;
+  image_url: string;
+  world?: string;
+  child_name?: string;
+  message?: string;
+};
+
 export const DREAM_IMAGE_PROMPT_VERSION_TAG = "FW_DREAM_PROMPT_V2_WHITE_BG";
+
+const normalizeMagicImageResponse = (raw: AnyJson | null): KidMagicImageResponse => {
+  const imageUrl = firstNonEmptyString([
+    raw?.image_url,
+    raw?.imageUrl,
+    raw?.url,
+    raw?.output_url,
+    raw?.result_url,
+    raw?.output?.image_url,
+    raw?.output?.url,
+    raw?.result?.image_url,
+    raw?.result?.url,
+    raw?.data?.image_url,
+    raw?.data?.url,
+    Array.isArray(raw?.images) ? raw?.images?.[0] : null,
+    Array.isArray(raw?.output?.images) ? raw?.output?.images?.[0] : null,
+    Array.isArray(raw?.data) ? raw?.data?.[0]?.image_url : null,
+    Array.isArray(raw?.data) ? raw?.data?.[0]?.url : null,
+    Array.isArray(raw?.output) ? raw?.output?.[0]?.image_url : null,
+    Array.isArray(raw?.output) ? raw?.output?.[0]?.url : null,
+  ]);
+
+  const imageBase64 = firstNonEmptyString([
+    raw?.image_base64,
+    raw?.imageBase64,
+    raw?.base64,
+    raw?.b64_json,
+    Array.isArray(raw?.images_base64) ? raw?.images_base64?.[0] : null,
+    Array.isArray(raw?.data) ? raw?.data?.[0]?.b64_json : null,
+    Array.isArray(raw?.output) ? raw?.output?.[0]?.b64_json : null,
+  ]);
+
+  const resolvedImage = imageUrl || (imageBase64 ? toImageDataUrl(imageBase64) : "");
+  const success = typeof raw?.success === "boolean" ? raw.success : Boolean(resolvedImage);
+
+  return {
+    success,
+    image_url: resolvedImage,
+    world: asString(raw?.world) || asString(raw?.style),
+    child_name: asString(raw?.child_name) || asString(raw?.childName),
+    message: asString(raw?.message) || asString(raw?.error),
+  };
+};
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -224,17 +288,26 @@ export const kidApi = {
 
   generateMagicImage(
     inviteCode: string,
-    body: { world: string; photo?: string | null; prompt?: string }
-  ) {
-    return request<{
-      success: boolean;
-      image_url: string;
+    body: {
       world: string;
-      child_name: string;
-    }>("/api/magic/generate", {
+      photo?: string | null;
+      prompt?: string;
+      provider?: string;
+      model?: string;
+      mode?: string;
+    }
+  ) {
+    const payload = {
+      ...body,
+      provider: body.provider ?? "flux2",
+      model: body.model ?? "flux-2-pro",
+      mode: body.mode ?? "image-to-image",
+    };
+
+    return request<AnyJson>("/api/magic/generate", {
       method: "POST",
       headers: { "X-Invite-Code": inviteCode },
-      body: JSON.stringify(body),
-    });
+      body: JSON.stringify(payload),
+    }).then((raw) => normalizeMagicImageResponse(raw));
   },
 };

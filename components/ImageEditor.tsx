@@ -85,7 +85,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
       if (result?.image_url) {
         setEditedImage(result.image_url);
       } else {
-        alert("Магия временно устала! Попробуй еще раз через минуту.");
+        alert(result?.message || "Магия временно устала! Попробуй еще раз через минуту.");
       }
     } catch (err: any) {
       console.error('[MAGIC LENS] generate error:', err);
