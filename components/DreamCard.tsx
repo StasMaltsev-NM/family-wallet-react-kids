@@ -453,8 +453,8 @@ const DreamCard: React.FC<DreamCardProps> = ({
         }}
       >
         {renderHeroPanel("В ОЖИДАНИИ РОДИТЕЛЯ")}
-        <p className="mt-2 px-4 text-xs font-black uppercase tracking-[0.15em] text-white/50">
-          Проверяем одобрение каждые 8 секунд
+        <p className="mt-2 px-4 text-[10px] font-black uppercase leading-tight tracking-[0.08em] text-white/50">
+          Проверка одобрения: каждые 8 сек
         </p>
         {errorMessage && <p className="mt-3 px-4 pb-4 text-sm font-bold text-rose-300">{errorMessage}</p>}
       </div>
