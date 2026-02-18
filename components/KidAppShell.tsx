@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 
 import { kidApi } from "../services/api";
@@ -114,13 +114,15 @@ const KidAppShell: React.FC<Props> = ({ kidCode }) => {
     const savedThemeId = window.localStorage.getItem(`fw_theme_id:${kidCode || "unknown"}`);
     return isThemeId(savedThemeId) ? savedThemeId : ThemeId.GOLDEN_TROPHY;
   });
-const [pollMs, setPollMs] = useState(3000);
+const [pollMs, setPollMs] = useState(6000);
 const [isOnline, setIsOnline] = useState(true);
 const [history, setHistory] = useState<Transaction[]>([]);
   const [recentlyPurchasedRewardIds, setRecentlyPurchasedRewardIds] = useState<Record<string, boolean>>({});
   const [purchasingRewardIds, setPurchasingRewardIds] = useState<Record<string, boolean>>({});
   const [isRewardsLoading, setIsRewardsLoading] = useState(false);
   const [isBootLoading, setIsBootLoading] = useState(true);
+  const rewardsRequestInFlight = useRef(false);
+  const rewardsLastFetchAt = useRef(0);
   // 1) Источник задач от backend
   const [apiTasks, setApiTasks] = useState<ApiTask[]>([]);
   const [apiRewards, setApiRewards] = useState<any[]>([]);
@@ -357,16 +359,24 @@ const loadRewards = async () => {
   }
 };
 // --- API: загрузка наград ребенка ---
-const loadRewards = async (showLoader = false) => {
-  if (showLoader) setIsRewardsLoading(true);
-  try {
-    if (!kidCode) return;
+const loadRewards = async (showLoader = false, force = false) => {
+  if (!kidCode) return;
+  if (rewardsRequestInFlight.current) return;
 
+  const now = Date.now();
+  if (!force && now - rewardsLastFetchAt.current < 2500) return;
+  rewardsLastFetchAt.current = now;
+  rewardsRequestInFlight.current = true;
+
+  if (showLoader) setIsRewardsLoading(true);
+  const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+  try {
     const res = await kidApi.listRewards(kidCode);
     const raw = res as any;
     const allRewards = extractRewardsArray(raw);
 
-    console.log("[KID] loaded rewards:", allRewards.length, "keys:", Object.keys(raw ?? {}));
+    const elapsedMs = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt);
+    console.log("[KID] loaded rewards:", allRewards.length, "in", `${elapsedMs}ms`, "keys:", Object.keys(raw ?? {}));
     // Доверяем backend-фильтрации по invite code, чтобы не терять валидные карточки на фронте.
     setApiRewards(allRewards);
     if (typeof window !== "undefined") {
@@ -379,6 +389,7 @@ const loadRewards = async (showLoader = false) => {
   } catch (e) {
     console.error("[KID] loadRewards FAIL:", e);
   } finally {
+    rewardsRequestInFlight.current = false;
     if (showLoader) setIsRewardsLoading(false);
   }
 };
@@ -408,7 +419,7 @@ const preloadDream = async () => {
     }, 15000);
 
     void (async () => {
-      await Promise.allSettled([loadTasks(), loadRewards(true), preloadDream()]);
+      await Promise.allSettled([loadTasks(), loadRewards(true, true), preloadDream()]);
       if (!isCancelled) {
         setIsRewardsLoading(false);
         setIsBootLoading(false);
@@ -428,7 +439,7 @@ useEffect(() => {
 
   const id = window.setInterval(() => {
     loadTasks();
-    loadRewards(false);
+    void loadRewards(false, false);
   }, pollMs);
 
   return () => window.clearInterval(id);
@@ -437,7 +448,7 @@ useEffect(() => {
 
 useEffect(() => {
   if (activeTab !== "shop" || !kidCode) return;
-  void loadRewards(false);
+  void loadRewards(false, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [activeTab, kidCode]);
 
@@ -445,7 +456,7 @@ useEffect(() => {
   if (!kidCode || typeof document === "undefined") return;
   const onVisible = () => {
     if (document.visibilityState === "visible") {
-      void loadRewards(false);
+      void loadRewards(false, true);
     }
   };
   document.addEventListener("visibilitychange", onVisible);
@@ -766,7 +777,7 @@ setUser((prev: any) => ({
   inventory: [...(prev.inventory ?? []), purchasedItem],
 }));
     // ПЕРЕЗАГРУЖАЕМ НАГРАДЫ!
-    await loadRewards();
+    await loadRewards(false, true);
   } catch (e) {
     console.error("[KID] purchaseReward FAIL:", e);
     setRecentlyPurchasedRewardIds((prev) => {

@@ -97,7 +97,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
         </div>
       ) : (
       <div className="grid grid-cols-2 gap-5">
-        {rewards.map((reward) => {
+        {rewards.map((reward, idx) => {
           const canAfford = balance >= reward.price;
           const isUnique = !reward.recurring;
           const isRecentlyPurchased = Boolean(recentlyPurchasedRewardIds[reward.id]);
@@ -121,6 +121,8 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
                 <img 
                   src={reward.image} 
                   alt={reward.title} 
+                  loading={idx < 2 ? "eager" : "lazy"}
+                  decoding="async"
                   className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110" 
                 />
                 
