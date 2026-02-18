@@ -40,6 +40,9 @@ const STYLE_PRESETS = [
   },
 ];
 
+const buildStrictMagicPrompt = (prompt: string): string =>
+  `Style-transfer request: use ONLY the uploaded source photo as the base image. Preserve the same person identity, face, pose, framing and scene composition. Do not create a new scene. Do not generate collage or split-screen. ${prompt}`;
+
 const normalizeImageForMagic = async (dataUrl: string): Promise<string> => {
   if (!dataUrl || !dataUrl.startsWith("data:image/")) return dataUrl;
 
@@ -107,7 +110,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
       const result = await kidApi.generateMagicImage(kidCode, {
         world: worldForRequest,
         photo: image,
-        prompt: finalPrompt,
+        prompt: buildStrictMagicPrompt(finalPrompt),
       });
 
       if (result?.image_url) {
