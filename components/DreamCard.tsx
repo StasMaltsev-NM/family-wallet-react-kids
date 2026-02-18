@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Rocket, Star, Trash2 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { KidDreamApi, kidApi } from "../services/api";
+import { DREAM_IMAGE_PROMPT_VERSION_TAG, KidDreamApi, kidApi } from "../services/api";
 import { AppTheme, Dream } from "../types";
 
 interface DreamCardProps {
@@ -68,6 +68,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const [isDreamImageUnsupported, setIsDreamImageUnsupported] = useState(false);
   const dreamImageRequestInFlight = useRef(false);
   const lastDreamImageRequestAt = useRef(0);
+  const promptUpgradeAttemptedByDreamId = useRef<Record<string, boolean>>({});
 
   const loadDream = useCallback(
     async (silent = false) => {
@@ -130,6 +131,13 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const sumValueClass = isLargeTargetAmount ? "text-[17px]" : "text-[20px]";
   const dreamImageUrl =
     typeof serverDream?.image_url === "string" ? String(serverDream.image_url).trim() : "";
+  const dreamImagePrompt =
+    typeof serverDream?.image_prompt === "string" ? String(serverDream.image_prompt).trim() : "";
+  const needsPromptUpgrade =
+    Boolean(dreamId) &&
+    Boolean(dreamImageUrl) &&
+    (uiStatus === "pending" || uiStatus === "active") &&
+    !dreamImagePrompt.includes(DREAM_IMAGE_PROMPT_VERSION_TAG);
   const heroBackgroundStyle = dreamImageUrl
     ? {
         backgroundImage: `linear-gradient(160deg, rgba(10,12,16,0.48), rgba(12,13,17,0.74)), radial-gradient(circle at 30% 30%, rgba(255,198,88,0.32), transparent 46%), url(${dreamImageUrl})`,
@@ -150,13 +158,22 @@ const DreamCard: React.FC<DreamCardProps> = ({
   }, [dreamId]);
 
   const requestDreamImageRefresh = useCallback(async () => {
-    if (!inviteCode || !dreamId || !dreamTitle || dreamImageUrl) return;
+    const forcePromptUpgrade =
+      Boolean(dreamId) &&
+      needsPromptUpgrade &&
+      !promptUpgradeAttemptedByDreamId.current[dreamId];
+
+    if (!inviteCode || !dreamId || !dreamTitle) return;
+    if (dreamImageUrl && !forcePromptUpgrade) return;
     if (!(uiStatus === "pending" || uiStatus === "active")) return;
     if (isDreamImageUnsupported || dreamImageRequestInFlight.current) return;
 
     const now = Date.now();
     if (now - lastDreamImageRequestAt.current < 5000) return;
     lastDreamImageRequestAt.current = now;
+    if (forcePromptUpgrade) {
+      promptUpgradeAttemptedByDreamId.current[dreamId] = true;
+    }
 
     dreamImageRequestInFlight.current = true;
     setIsDreamImageSyncing(true);
@@ -198,16 +215,16 @@ const DreamCard: React.FC<DreamCardProps> = ({
       dreamImageRequestInFlight.current = false;
       setIsDreamImageSyncing(false);
     }
-  }, [dreamId, dreamImageUrl, dreamTitle, inviteCode, isDreamImageUnsupported, loadDream, uiStatus]);
+  }, [dreamId, dreamImageUrl, dreamTitle, inviteCode, isDreamImageUnsupported, loadDream, needsPromptUpgrade, uiStatus]);
 
   useEffect(() => {
-    if (dreamImageUrl || isDreamImageUnsupported) return;
+    if ((dreamImageUrl && !needsPromptUpgrade) || isDreamImageUnsupported) return;
     if (!(uiStatus === "pending" || uiStatus === "active")) return;
     void requestDreamImageRefresh();
-  }, [dreamImageUrl, isDreamImageUnsupported, requestDreamImageRefresh, uiStatus]);
+  }, [dreamImageUrl, isDreamImageUnsupported, needsPromptUpgrade, requestDreamImageRefresh, uiStatus]);
 
   useEffect(() => {
-    if (dreamImageUrl || isDreamImageUnsupported) return;
+    if ((dreamImageUrl && !needsPromptUpgrade) || isDreamImageUnsupported) return;
     if (!(uiStatus === "pending" || uiStatus === "active")) return;
 
     const timer = window.setInterval(() => {
@@ -215,7 +232,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
     }, 18000);
 
     return () => window.clearInterval(timer);
-  }, [dreamImageUrl, isDreamImageUnsupported, requestDreamImageRefresh, uiStatus]);
+  }, [dreamImageUrl, isDreamImageUnsupported, needsPromptUpgrade, requestDreamImageRefresh, uiStatus]);
 
   useEffect(() => {
     if (isReached) {

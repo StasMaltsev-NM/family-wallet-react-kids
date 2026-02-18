@@ -25,6 +25,8 @@ export type KidDreamImageResponse = {
   dream?: KidDreamApi | null;
 };
 
+export const DREAM_IMAGE_PROMPT_VERSION_TAG = "FW_DREAM_PROMPT_V2_WHITE_BG";
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -201,9 +203,6 @@ export const kidApi = {
     const payload = JSON.stringify({
       dream_id: dreamId,
       title: dreamTitle || undefined,
-      prompt:
-        `Create a cinematic image of the child's dream "${String(dreamTitle || "").trim()}". ` +
-        "Dark environment, warm spotlight focused on the dream object, high contrast, kid-friendly, clean composition.",
     });
     const call = (path: string) =>
       request<KidDreamImageResponse>(path, {
