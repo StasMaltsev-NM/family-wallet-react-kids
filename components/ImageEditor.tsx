@@ -50,6 +50,7 @@ type MagicLensCacheState = {
   v: number;
   image: string | null;
   editedImage: string | null;
+  editedShareUrl: string | null;
   prompt: string;
   activePreset: string | null;
 };
@@ -75,6 +76,9 @@ const readMagicLensCache = (cacheKey: string): MagicLensCacheState | null => {
       v: MAGIC_LENS_CACHE_VERSION,
       image: typeof cached?.image === 'string' && cached.image ? cached.image : null,
       editedImage: typeof cached?.editedImage === 'string' && cached.editedImage ? cached.editedImage : null,
+      editedShareUrl: typeof (cached as any)?.editedShareUrl === 'string' && (cached as any).editedShareUrl
+        ? (cached as any).editedShareUrl
+        : null,
       prompt: typeof cached?.prompt === 'string' ? cached.prompt : '',
       activePreset: typeof cached?.activePreset === 'string' && cached.activePreset ? cached.activePreset : null,
     };
@@ -144,6 +148,7 @@ const buildMagicFileName = (ext: string): string =>
 
 const isHttpUrl = (value: string): boolean => /^https?:\/\//i.test(String(value || '').trim());
 const TELEGRAM_SHARE_BASE = 'https://t.me/share/url';
+const DATA_IMAGE_URL_RE = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/;
 
 const openTelegramLink = (url: string): void => {
   const tg = (window as any)?.Telegram?.WebApp;
@@ -154,9 +159,30 @@ const openTelegramLink = (url: string): void => {
   window.open(url, '_blank', 'noopener,noreferrer');
 };
 
+const decodeDataImageUrl = (src: string): Blob | null => {
+  const raw = String(src || '').trim();
+  const match = raw.match(DATA_IMAGE_URL_RE);
+  if (!match) return null;
+
+  try {
+    const mimeType = match[1] || 'image/jpeg';
+    const base64 = match[2] || '';
+    const binary = atob(base64.replace(/\s/g, ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: mimeType });
+  } catch (err) {
+    console.error('[MAGIC LENS] data url decode failed:', err);
+    return null;
+  }
+};
+
 const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
   const [image, setImage] = useState<string | null>(null);
   const [editedImage, setEditedImage] = useState<string | null>(null);
+  const [editedShareUrl, setEditedShareUrl] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -187,6 +213,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
     const restored = readMagicLensCache(cacheKey);
     setImage(restored?.image || null);
     setEditedImage(restored?.editedImage || null);
+    setEditedShareUrl(restored?.editedShareUrl || null);
     setPrompt(restored?.prompt || '');
     setActivePreset(restored?.activePreset || null);
     setIsCacheHydrated(true);
@@ -199,6 +226,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
         const afterDone = readMagicLensCache(cacheKey);
         setImage(afterDone?.image || null);
         setEditedImage(afterDone?.editedImage || null);
+        setEditedShareUrl(afterDone?.editedShareUrl || null);
         setPrompt(afterDone?.prompt || '');
         setActivePreset(afterDone?.activePreset || null);
         setIsProcessing(false);
@@ -209,20 +237,22 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
   useEffect(() => {
     if (!isCacheHydrated || typeof window === 'undefined') return;
 
-    const payload: MagicLensCacheState = {
-      v: MAGIC_LENS_CACHE_VERSION,
-      image,
-      editedImage,
-      prompt,
-      activePreset,
-    };
+      const payload: MagicLensCacheState = {
+        v: MAGIC_LENS_CACHE_VERSION,
+        image,
+        editedImage,
+        editedShareUrl,
+        prompt,
+        activePreset,
+      };
 
     const hasContent = Boolean(
-      String(image || '').trim() ||
-      String(editedImage || '').trim() ||
-      String(prompt || '').trim() ||
-      String(activePreset || '').trim(),
-    );
+        String(image || '').trim() ||
+        String(editedImage || '').trim() ||
+        String(editedShareUrl || '').trim() ||
+        String(prompt || '').trim() ||
+        String(activePreset || '').trim(),
+      );
 
     if (!hasContent) {
       clearMagicLensCache(cacheKey);
@@ -230,9 +260,12 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
     }
 
     writeMagicLensCache(cacheKey, payload);
-  }, [isCacheHydrated, cacheKey, image, editedImage, prompt, activePreset]);
+  }, [isCacheHydrated, cacheKey, image, editedImage, editedShareUrl, prompt, activePreset]);
 
   const getBlobFromSource = async (src: string): Promise<Blob> => {
+    const localDataBlob = decodeDataImageUrl(src);
+    if (localDataBlob) return localDataBlob;
+
     const response = await fetch(src);
     if (!response.ok) {
       throw new Error(`Не удалось получить картинку (HTTP ${response.status})`);
@@ -241,13 +274,14 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
   };
 
   const handleDownloadEdited = async () => {
-    if (!editedImage || isDownloading) return;
+    const downloadSource = (editedShareUrl && isHttpUrl(editedShareUrl)) ? editedShareUrl : editedImage;
+    if (!downloadSource || isDownloading) return;
 
     setIsDownloading(true);
     try {
-      if (isHttpUrl(editedImage)) {
+      if (isHttpUrl(downloadSource)) {
         const link = document.createElement('a');
-        link.href = editedImage;
+        link.href = downloadSource;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.download = buildMagicFileName('jpg');
@@ -257,7 +291,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
         return;
       }
 
-      const blob = await getBlobFromSource(editedImage);
+      const blob = await getBlobFromSource(downloadSource);
       const ext = getFileExtByMimeType(blob.type);
       const fileName = buildMagicFileName(ext);
       const objectUrl = URL.createObjectURL(blob);
@@ -272,8 +306,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1200);
     } catch (err) {
       console.error('[MAGIC LENS] download failed:', err);
-      if (isHttpUrl(editedImage)) {
-        window.open(editedImage, '_blank', 'noopener,noreferrer');
+      if (isHttpUrl(downloadSource)) {
+        openTelegramLink(downloadSource);
       } else {
         alert('Не удалось скачать картинку. Попробуй еще раз.');
       }
@@ -287,9 +321,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
 
     setIsSharing(true);
     try {
-      const shareText = 'Моя магическая трансформация в ВЭЙ!';
-      if (isHttpUrl(editedImage)) {
-        const tgUrl = `${TELEGRAM_SHARE_BASE}?url=${encodeURIComponent(editedImage)}&text=${encodeURIComponent(shareText)}`;
+      const shareSource = (editedShareUrl && isHttpUrl(editedShareUrl)) ? editedShareUrl : editedImage;
+
+      if (isHttpUrl(shareSource)) {
+        const tgUrl = `${TELEGRAM_SHARE_BASE}?url=${encodeURIComponent(shareSource)}`;
         openTelegramLink(tgUrl);
         return;
       }
@@ -306,7 +341,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
         if (canShareFiles) {
           await nav.share({
             title: 'ВЭЙ Магия',
-            text: shareText,
             files: [file],
           });
           return;
@@ -333,6 +367,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
         const preparedImage = await normalizeImageForMagic(rawImage);
         setImage(preparedImage);
         setEditedImage(null);
+        setEditedShareUrl(null);
         setPrompt('');
         setActivePreset(null);
       };
@@ -357,6 +392,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
       v: MAGIC_LENS_CACHE_VERSION,
       image,
       editedImage: null,
+      editedShareUrl: null,
       prompt: finalPrompt,
       activePreset: worldForRequest,
     };
@@ -371,10 +407,16 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
         });
 
         if (result?.image_url) {
+          const resolvedShareUrl = isHttpUrl(String((result as any)?.share_url || ''))
+            ? String((result as any).share_url)
+            : isHttpUrl(result.image_url)
+            ? result.image_url
+            : null;
           writeMagicLensCache(cacheKey, {
             v: MAGIC_LENS_CACHE_VERSION,
             image,
             editedImage: result.image_url,
+            editedShareUrl: resolvedShareUrl,
             prompt: finalPrompt,
             activePreset: null,
           });
@@ -408,6 +450,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
 
     if (outcome.imageUrl) {
       setEditedImage(outcome.imageUrl);
+      const restored = readMagicLensCache(cacheKey);
+      setEditedShareUrl(restored?.editedShareUrl || null);
       return;
     }
 
@@ -417,6 +461,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
   const reset = () => {
     setImage(null);
     setEditedImage(null);
+    setEditedShareUrl(null);
     setPrompt('');
     setActivePreset(null);
   };
@@ -424,9 +469,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
   return (
     <div className="flex flex-col pt-8 pb-32 px-6 min-h-screen">
       <div className="mb-8">
-        <h1 className="text-4xl font-black italic uppercase leading-tight" style={{ color: theme.text }}>
-          Магическая <br />
-          <span style={{ color: theme.accent }}>Линза</span>
+        <h1 className="text-4xl font-black italic uppercase leading-tight" style={{ color: '#FFFFFF' }}>
+          Студия
         </h1>
         <p className="opacity-40 font-bold uppercase text-[10px] tracking-[0.2em] mt-2">Преврати фото в приключение!</p>
       </div>

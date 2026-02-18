@@ -8,6 +8,7 @@ const API_URL: string =
 type AnyJson = Record<string, any>;
 
 const asString = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+const isHttpUrl = (value: unknown): boolean => /^https?:\/\//i.test(asString(value));
 
 const firstNonEmptyString = (values: unknown[]): string => {
   for (const value of values) {
@@ -41,6 +42,7 @@ export type KidDreamImageResponse = {
 export type KidMagicImageResponse = {
   success: boolean;
   image_url: string;
+  share_url?: string;
   world?: string;
   child_name?: string;
   message?: string;
@@ -80,11 +82,25 @@ const normalizeMagicImageResponse = (raw: AnyJson | null): KidMagicImageResponse
   ]);
 
   const resolvedImage = imageUrl || (imageBase64 ? toImageDataUrl(imageBase64) : "");
+  const shareUrl = firstNonEmptyString([
+    raw?.share_url,
+    raw?.shareUrl,
+    raw?.download_url,
+    raw?.downloadUrl,
+    raw?.remote_url,
+    raw?.remoteUrl,
+    raw?.source_url,
+    raw?.sourceUrl,
+    raw?.original_url,
+    raw?.originalUrl,
+    isHttpUrl(resolvedImage) ? resolvedImage : "",
+  ]);
   const success = typeof raw?.success === "boolean" ? raw.success : Boolean(resolvedImage);
 
   return {
     success,
     image_url: resolvedImage,
+    share_url: shareUrl || undefined,
     world: asString(raw?.world) || asString(raw?.style),
     child_name: asString(raw?.child_name) || asString(raw?.childName),
     message: asString(raw?.message) || asString(raw?.error),
