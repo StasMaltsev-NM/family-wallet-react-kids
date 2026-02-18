@@ -1,6 +1,6 @@
 
-import React, { useState, useRef } from 'react';
-import { Wand2, Camera, Upload, RefreshCw, CheckCircle, Sparkles, Wand, Zap } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Wand2, Camera, Upload, RefreshCw, Sparkles, Zap, Download, Share2 } from 'lucide-react';
 import { AppTheme } from '../types';
 import { kidApi } from '../services/api';
 
@@ -43,13 +43,76 @@ const STYLE_PRESETS = [
 const buildStrictMagicPrompt = (prompt: string): string =>
   `Style-transfer request: use ONLY the uploaded source photo as the base image. Preserve the same person identity, face, pose, framing and scene composition. Do not create a new scene. Do not generate collage or split-screen. ${prompt}`;
 
+const MAGIC_LENS_CACHE_VERSION = 1;
+const MAGIC_LENS_CACHE_PREFIX = 'fw_magic_lens_cache';
+
+type MagicLensCacheState = {
+  v: number;
+  image: string | null;
+  editedImage: string | null;
+  prompt: string;
+  activePreset: string | null;
+};
+
+type MagicLensGenerateOutcome = {
+  imageUrl: string | null;
+  errorMessage: string | null;
+};
+
+const magicLensMemoryCache = new Map<string, MagicLensCacheState>();
+const magicLensInFlight = new Map<string, Promise<MagicLensGenerateOutcome>>();
+
+const readMagicLensCache = (cacheKey: string): MagicLensCacheState | null => {
+  const memory = magicLensMemoryCache.get(cacheKey);
+  if (memory) return memory;
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as Partial<MagicLensCacheState>;
+    return {
+      v: MAGIC_LENS_CACHE_VERSION,
+      image: typeof cached?.image === 'string' && cached.image ? cached.image : null,
+      editedImage: typeof cached?.editedImage === 'string' && cached.editedImage ? cached.editedImage : null,
+      prompt: typeof cached?.prompt === 'string' ? cached.prompt : '',
+      activePreset: typeof cached?.activePreset === 'string' && cached.activePreset ? cached.activePreset : null,
+    };
+  } catch (err) {
+    console.warn('[MAGIC LENS] cache read failed:', err);
+    return null;
+  }
+};
+
+const writeMagicLensCache = (cacheKey: string, payload: MagicLensCacheState): void => {
+  magicLensMemoryCache.set(cacheKey, payload);
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(cacheKey, JSON.stringify(payload));
+  } catch (err) {
+    console.warn('[MAGIC LENS] cache write failed:', err);
+  }
+};
+
+const clearMagicLensCache = (cacheKey: string): void => {
+  magicLensMemoryCache.delete(cacheKey);
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.removeItem(cacheKey);
+  } catch (err) {
+    console.warn('[MAGIC LENS] cache clear failed:', err);
+  }
+};
+
 const normalizeImageForMagic = async (dataUrl: string): Promise<string> => {
   if (!dataUrl || !dataUrl.startsWith("data:image/")) return dataUrl;
 
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const maxSide = 1536;
+      const maxSide = 896;
       const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
       const width = Math.max(1, Math.round(img.width * scale));
       const height = Math.max(1, Math.round(img.height * scale));
@@ -62,11 +125,33 @@ const normalizeImageForMagic = async (dataUrl: string): Promise<string> => {
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", 0.92));
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
     };
     img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
   });
+};
+
+const getFileExtByMimeType = (mimeType: string): string => {
+  const mime = String(mimeType || '').toLowerCase();
+  if (mime.includes('png')) return 'png';
+  if (mime.includes('webp')) return 'webp';
+  return 'jpg';
+};
+
+const buildMagicFileName = (ext: string): string =>
+  `vey-magic-${new Date().toISOString().replace(/[:.]/g, '-')}.${ext}`;
+
+const isHttpUrl = (value: string): boolean => /^https?:\/\//i.test(String(value || '').trim());
+const TELEGRAM_SHARE_BASE = 'https://t.me/share/url';
+
+const openTelegramLink = (url: string): void => {
+  const tg = (window as any)?.Telegram?.WebApp;
+  if (typeof tg?.openTelegramLink === 'function') {
+    tg.openTelegramLink(url);
+    return;
+  }
+  window.open(url, '_blank', 'noopener,noreferrer');
 };
 
 const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
@@ -75,7 +160,169 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
   const [prompt, setPrompt] = useState('');
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isCacheHydrated, setIsCacheHydrated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMountedRef = useRef(true);
+  const cacheKey = useMemo(
+    () => `${MAGIC_LENS_CACHE_PREFIX}:${kidCode || 'unknown'}`,
+    [kidCode],
+  );
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsCacheHydrated(false);
+    if (typeof window === 'undefined') {
+      setIsCacheHydrated(true);
+      return;
+    }
+
+    const restored = readMagicLensCache(cacheKey);
+    setImage(restored?.image || null);
+    setEditedImage(restored?.editedImage || null);
+    setPrompt(restored?.prompt || '');
+    setActivePreset(restored?.activePreset || null);
+    setIsCacheHydrated(true);
+
+    const pending = magicLensInFlight.get(cacheKey);
+    if (pending) {
+      setIsProcessing(true);
+      pending.finally(() => {
+        if (!isMountedRef.current) return;
+        const afterDone = readMagicLensCache(cacheKey);
+        setImage(afterDone?.image || null);
+        setEditedImage(afterDone?.editedImage || null);
+        setPrompt(afterDone?.prompt || '');
+        setActivePreset(afterDone?.activePreset || null);
+        setIsProcessing(false);
+      });
+    }
+  }, [cacheKey]);
+
+  useEffect(() => {
+    if (!isCacheHydrated || typeof window === 'undefined') return;
+
+    const payload: MagicLensCacheState = {
+      v: MAGIC_LENS_CACHE_VERSION,
+      image,
+      editedImage,
+      prompt,
+      activePreset,
+    };
+
+    const hasContent = Boolean(
+      String(image || '').trim() ||
+      String(editedImage || '').trim() ||
+      String(prompt || '').trim() ||
+      String(activePreset || '').trim(),
+    );
+
+    if (!hasContent) {
+      clearMagicLensCache(cacheKey);
+      return;
+    }
+
+    writeMagicLensCache(cacheKey, payload);
+  }, [isCacheHydrated, cacheKey, image, editedImage, prompt, activePreset]);
+
+  const getBlobFromSource = async (src: string): Promise<Blob> => {
+    const response = await fetch(src);
+    if (!response.ok) {
+      throw new Error(`Не удалось получить картинку (HTTP ${response.status})`);
+    }
+    return response.blob();
+  };
+
+  const handleDownloadEdited = async () => {
+    if (!editedImage || isDownloading) return;
+
+    setIsDownloading(true);
+    try {
+      if (isHttpUrl(editedImage)) {
+        const link = document.createElement('a');
+        link.href = editedImage;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.download = buildMagicFileName('jpg');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        return;
+      }
+
+      const blob = await getBlobFromSource(editedImage);
+      const ext = getFileExtByMimeType(blob.type);
+      const fileName = buildMagicFileName(ext);
+      const objectUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1200);
+    } catch (err) {
+      console.error('[MAGIC LENS] download failed:', err);
+      if (isHttpUrl(editedImage)) {
+        window.open(editedImage, '_blank', 'noopener,noreferrer');
+      } else {
+        alert('Не удалось скачать картинку. Попробуй еще раз.');
+      }
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleShareToTelegram = async () => {
+    if (!editedImage || isSharing) return;
+
+    setIsSharing(true);
+    try {
+      const shareText = 'Моя магическая трансформация в ВЭЙ!';
+      if (isHttpUrl(editedImage)) {
+        const tgUrl = `${TELEGRAM_SHARE_BASE}?url=${encodeURIComponent(editedImage)}&text=${encodeURIComponent(shareText)}`;
+        openTelegramLink(tgUrl);
+        return;
+      }
+
+      const blob = await getBlobFromSource(editedImage);
+      const ext = getFileExtByMimeType(blob.type);
+      const file = new File([blob], buildMagicFileName(ext), { type: blob.type || 'image/jpeg' });
+      const nav: any = typeof navigator !== 'undefined' ? navigator : null;
+      if (nav?.share) {
+        const canShareFiles = typeof nav.canShare === 'function'
+          ? nav.canShare({ files: [file] })
+          : true;
+
+        if (canShareFiles) {
+          await nav.share({
+            title: 'ВЭЙ Магия',
+            text: shareText,
+            files: [file],
+          });
+          return;
+        }
+      }
+
+      alert('На этом устройстве нельзя сразу отправить файл в Telegram. Скачай картинку и отправь вручную.');
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('[MAGIC LENS] share failed:', err);
+        alert('Не удалось поделиться картинкой. Попробуй еще раз.');
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,26 +352,66 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
     
     setIsProcessing(true);
     if (presetId) setActivePreset(presetId);
-    
-    try {
-      const result = await kidApi.generateMagicImage(kidCode, {
-        world: worldForRequest,
-        photo: image,
-        prompt: buildStrictMagicPrompt(finalPrompt),
-      });
 
-      if (result?.image_url) {
-        setEditedImage(result.image_url);
-      } else {
-        alert(result?.message || "Магия временно устала! Попробуй еще раз через минуту.");
+    const pendingCache: MagicLensCacheState = {
+      v: MAGIC_LENS_CACHE_VERSION,
+      image,
+      editedImage: null,
+      prompt: finalPrompt,
+      activePreset: worldForRequest,
+    };
+    writeMagicLensCache(cacheKey, pendingCache);
+
+    const job = (async (): Promise<MagicLensGenerateOutcome> => {
+      try {
+        const result = await kidApi.generateMagicImage(kidCode, {
+          world: worldForRequest,
+          photo: image,
+          prompt: buildStrictMagicPrompt(finalPrompt),
+        });
+
+        if (result?.image_url) {
+          writeMagicLensCache(cacheKey, {
+            v: MAGIC_LENS_CACHE_VERSION,
+            image,
+            editedImage: result.image_url,
+            prompt: finalPrompt,
+            activePreset: null,
+          });
+          return { imageUrl: result.image_url, errorMessage: null };
+        }
+
+        return {
+          imageUrl: null,
+          errorMessage: result?.message || "Магия временно устала! Попробуй еще раз через минуту.",
+        };
+      } catch (err: any) {
+        console.error('[MAGIC LENS] generate error:', err);
+        return {
+          imageUrl: null,
+          errorMessage: err?.message || 'Неизвестная ошибка',
+        };
       }
-    } catch (err: any) {
-      console.error('[MAGIC LENS] generate error:', err);
-      alert(`Ошибка магии: ${err?.message || 'Неизвестная ошибка'}`);
-    }
-    
+    })();
+
+    magicLensInFlight.set(cacheKey, job);
+    const outcome = await job.finally(() => {
+      if (magicLensInFlight.get(cacheKey) === job) {
+        magicLensInFlight.delete(cacheKey);
+      }
+    });
+
+    if (!isMountedRef.current) return;
+
     setIsProcessing(false);
     setActivePreset(null);
+
+    if (outcome.imageUrl) {
+      setEditedImage(outcome.imageUrl);
+      return;
+    }
+
+    alert(`Ошибка магии: ${outcome.errorMessage || 'Неизвестная ошибка'}`);
   };
 
   const reset = () => {
@@ -206,8 +493,40 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
             )}
             
             {editedImage && !isProcessing && (
-              <div className="absolute top-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-[0_0_30px_rgba(0,0,0,0.5)] animate-in zoom-in-50">
-                <CheckCircle size={32} />
+              <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 animate-in zoom-in-50">
+                <button
+                  onClick={handleDownloadEdited}
+                  disabled={isDownloading}
+                  className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${
+                    isDownloading ? 'opacity-60' : 'hover:scale-105 active:scale-95'
+                  }`}
+                  style={{
+                    borderColor: 'rgba(255,255,255,0.35)',
+                    backgroundColor: 'rgba(12,18,30,0.82)',
+                    color: '#FFFFFF',
+                  }}
+                  title="Скачать на устройство"
+                  aria-label="Скачать на устройство"
+                >
+                  <Download size={20} />
+                </button>
+
+                <button
+                  onClick={handleShareToTelegram}
+                  disabled={isSharing}
+                  className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${
+                    isSharing ? 'opacity-60' : 'hover:scale-105 active:scale-95'
+                  }`}
+                  style={{
+                    borderColor: `${theme.accent}88`,
+                    backgroundColor: 'rgba(12,18,30,0.82)',
+                    color: theme.accent,
+                  }}
+                  title="Поделиться в Telegram"
+                  aria-label="Поделиться в Telegram"
+                >
+                  <Share2 size={20} />
+                </button>
               </div>
             )}
           </div>

@@ -691,20 +691,24 @@ const handleReceiveReward = async (purchaseId: string) => {
           />
         );
 
-      case "editor":
-        return <ImageEditor theme={theme} kidCode={kidCode} />;
-
       default:
         return null;
     }
   };
+
+  const isEditorTab = activeTab === "editor";
 
   return (
     <div
       className="h-screen flex flex-col"
       style={{ backgroundColor: theme.bg, color: theme.text }}
     >
-      <main className="flex-1 overflow-y-auto pb-20">{renderScreen()}</main>
+      <main className="flex-1 overflow-y-auto pb-20">
+        {!isEditorTab && renderScreen()}
+        <div className={isEditorTab ? "block" : "hidden"}>
+          <ImageEditor theme={theme} kidCode={kidCode} />
+        </div>
+      </main>
 
       <BottomNav
         activeTab={activeTab}
