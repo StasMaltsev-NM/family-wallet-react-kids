@@ -83,7 +83,11 @@ const DreamCard: React.FC<DreamCardProps> = ({
         setServerDream(nextDream);
         setErrorMessage("");
       } catch (err) {
-        setErrorMessage(normalizeError(err));
+        if (!silent) {
+          setErrorMessage(normalizeError(err));
+        } else {
+          console.warn("[DREAM] silent load failed:", getRawErrorMessage(err));
+        }
       } finally {
         if (!silent) setIsLoading(false);
       }
@@ -173,11 +177,19 @@ const DreamCard: React.FC<DreamCardProps> = ({
         raw.includes("HTTP 405") ||
         rawLower.includes("not found") ||
         rawLower.includes("method not allowed");
+      const isTransientImageError =
+        rawLower.includes("load failed") ||
+        rawLower.includes("failed to fetch") ||
+        rawLower.includes("network") ||
+        rawLower.includes("timeout");
       if (isMissingRoute) {
         setIsDreamImageUnsupported(true);
         setErrorMessage("");
       } else if (raw.includes("HTTP 401") || raw.includes("HTTP 403")) {
         setIsDreamImageUnsupported(true);
+        setErrorMessage("");
+      } else if (isTransientImageError) {
+        console.warn("[DREAM IMAGE] transient error:", raw);
         setErrorMessage("");
       } else {
         setErrorMessage(normalizeError(err));
@@ -303,7 +315,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
         </p>
 
         {uiStatus === "active" && (
-          <div className="mt-3 w-full rounded-[28px] bg-black/10 px-4 py-4 backdrop-blur-[1.4px]">
+          <div className="mt-3 w-full rounded-[28px] bg-black/3 px-4 py-4 backdrop-blur-[0.3px]">
             <div className="flex items-end gap-1.5 leading-none whitespace-nowrap">
               <span className="text-[17px] font-black italic uppercase" style={{ color: "#FFEA66" }}>
                 ОСТАЛОСЬ:
