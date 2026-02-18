@@ -40,6 +40,32 @@ const STYLE_PRESETS = [
   },
 ];
 
+const normalizeImageForMagic = async (dataUrl: string): Promise<string> => {
+  if (!dataUrl || !dataUrl.startsWith("data:image/")) return dataUrl;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxSide = 1536;
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(dataUrl);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.92));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+};
+
 const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
   const [image, setImage] = useState<string | null>(null);
   const [editedImage, setEditedImage] = useState<string | null>(null);
@@ -52,8 +78,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setImage(event.target?.result as string);
+      reader.onload = async (event) => {
+        const rawImage = event.target?.result as string;
+        const preparedImage = await normalizeImageForMagic(rawImage);
+        setImage(preparedImage);
         setEditedImage(null);
         setPrompt('');
         setActivePreset(null);

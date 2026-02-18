@@ -20,6 +20,12 @@ const firstNonEmptyString = (values: unknown[]): string => {
 const toImageDataUrl = (base64: string): string =>
   base64.startsWith("data:image/") ? base64 : `data:image/png;base64,${base64}`;
 
+const extractBase64 = (value: string): string => {
+  const normalized = asString(value);
+  const separator = normalized.indexOf(",");
+  return separator >= 0 ? normalized.slice(separator + 1) : normalized;
+};
+
 export type KidDreamApi = {
   id?: string;
   title?: string;
@@ -297,10 +303,29 @@ export const kidApi = {
       mode?: string;
     }
   ) {
+    const photo = asString(body.photo);
+    const photoBase64 = photo ? extractBase64(photo) : "";
+    const isDataImage = photo.startsWith("data:image/");
+    const photoUrl = !isDataImage ? photo : "";
+
+    const payload = {
+      ...body,
+      photo: photo || undefined,
+      image: photo || undefined,
+      input_image: photo || undefined,
+      source_image: photo || undefined,
+      photo_base64: photoBase64 || undefined,
+      image_base64: photoBase64 || undefined,
+      input_image_base64: photoBase64 || undefined,
+      image_url: photoUrl || undefined,
+      input_url: photoUrl || undefined,
+      input_urls: photo ? [photo] : undefined,
+    };
+
     return request<AnyJson>("/api/magic/generate", {
       method: "POST",
       headers: { "X-Invite-Code": inviteCode },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     }).then((raw) => normalizeMagicImageResponse(raw));
   },
 };
