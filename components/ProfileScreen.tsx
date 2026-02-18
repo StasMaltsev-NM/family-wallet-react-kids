@@ -4,6 +4,7 @@ import { Trophy, Zap, Palette, Star, ChevronRight, Settings } from 'lucide-react
 import { AppTheme, ThemeId } from '../types';
 import { BADGES } from '../constants';
 import Avatar from './Avatar';
+import { getBalanceSizeTier } from './balanceSizing';
 
 interface ProfileScreenProps {
   name: string;
@@ -13,7 +14,6 @@ interface ProfileScreenProps {
   currentThemeId: ThemeId;
   onThemeChange: (themeId: ThemeId) => void;
   isParentMode: boolean;
-  currencyIcon: string;
 }
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ 
@@ -23,14 +23,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   theme,
   currentThemeId,
   onThemeChange,
-  isParentMode,
-  currencyIcon
+  isParentMode
 }) => {
   // Уровневая система: 1 уровень за каждые 300 заработанных монет
   const xpPerLevel = 300;
   const currentLevel = Math.floor(lifetimeEarnings / xpPerLevel) + 1;
   const currentXP = lifetimeEarnings % xpPerLevel;
   const progressToNextLevel = (currentXP / xpPerLevel) * 100;
+  const earningsTier = getBalanceSizeTier(Number(lifetimeEarnings || 0));
+  const earningsValueClass =
+    earningsTier === "tight" ? "text-[24px]" : earningsTier === "compact" ? "text-[27px]" : "text-3xl";
+
+  const handleLogout = () => {
+    if (confirm('Выйти из профиля?')) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
 
   const themeOptions = [
     { id: ThemeId.GAMER_BLUE, label: 'Геймер', preview: '#00E5FF', icon: '🔵' },
@@ -42,18 +51,15 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
     <div className="flex flex-col pt-4 pb-32 px-6 min-h-screen">
 {/* Header with Settings */}
 <div className="flex justify-between items-center mb-6">
-  <div className="flex items-center space-x-2">
-    <div className="w-8 h-8 rounded-lg flex items-center justify-center">
-      <span className="font-black uppercase text-xs tracking-tighter">УРОВЕНЬ</span>
-    </div>
-  </div>
+  <div />
   
   <button 
     type="button"
     className="p-3 rounded-2xl bg-white/5 border border-white/5 opacity-60"
     aria-label="Настройки"
+    onClick={handleLogout}
   >
-    <Settings size={20} className="cursor-default" />
+    <Settings size={20} />
   </button>
 </div>
 
@@ -91,7 +97,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <Zap size={14} />
             <p className="text-[10px] font-black uppercase tracking-widest">Доход</p>
           </div>
-          <p className="text-3xl font-black italic" style={{ color: theme.accent }}>{lifetimeEarnings} <span className="text-sm">{currencyIcon}</span></p>
+          <p className={`${earningsValueClass} font-black italic leading-none whitespace-nowrap`} style={{ color: theme.accent }}>
+            {lifetimeEarnings}
+          </p>
         </div>
         <div 
           className="p-6 rounded-[32px] border-b-8 transition-transform active:scale-95"
@@ -179,19 +187,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </div>
       </div>
 
-      <div className="mt-auto pt-8">
-        <button
-          onClick={() => {
-            if (confirm('Выйти из профиля?')) {
-              localStorage.clear();
-              window.location.reload();
-            }
-          }}
-          className="w-full py-5 px-6 rounded-[28px] bg-red-500/10 text-red-400 font-black uppercase tracking-wider hover:bg-red-500/20 transition-all active:scale-[0.98] border-2 border-red-500/20"
-        >
-          ВЫХОД ИЗ ПРОФИЛЯ
-        </button>
-      </div>
     </div>
   );
 };

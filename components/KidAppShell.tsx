@@ -20,8 +20,10 @@ import WalletScreen from "./WalletScreen";
 import MissionsScreen from "./MissionsScreen";
 import ShopScreen from "./ShopScreen";
 import ProfileScreen from "./ProfileScreen";
+import { primeDreamCache } from "./DreamCard";
 import ImageEditor from "./ImageEditor";
 import ParentDashboard from "./ParentDashboard";
+import BootLoadingScreen from "./BootLoadingScreen";
 
 type ApiTask = {
   id: string;
@@ -54,16 +56,71 @@ const mapApiTaskToUiTask = (t: ApiTask) => ({
   status: mapApiStatusToUi(t.status),
 });
 
+const isThemeId = (value: unknown): value is ThemeId =>
+  Object.values(ThemeId).includes(value as ThemeId);
+
+const extractRewardsArray = (raw: any): any[] => {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== "object") return [];
+
+  const directCandidates = [
+    raw?.rewards,
+    raw?.items,
+    raw?.data,
+    raw?.data?.rewards,
+    raw?.data?.items,
+    raw?.result,
+    raw?.result?.rewards,
+    raw?.result?.items,
+  ];
+  const direct = directCandidates.find(Array.isArray);
+  if (Array.isArray(direct)) return direct;
+
+  for (const value of Object.values(raw)) {
+    if (Array.isArray(value)) return value as any[];
+    if (value && typeof value === "object") {
+      for (const nested of Object.values(value as Record<string, unknown>)) {
+        if (Array.isArray(nested)) return nested as any[];
+      }
+    }
+  }
+
+  return [];
+};
+
+const normalizeRewardTitle = (value: unknown): string =>
+  String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+
+const isAllowedRewardTitle = (value: unknown): boolean => {
+  const title = normalizeRewardTitle(value);
+  return (
+    title.includes("БАРБИ") ||
+    title.includes("ПОНЧИК") ||
+    (title.includes("МУЛЬТИК") && (title.includes("YOUTUBE") || title.includes("ЮТУБ")))
+  );
+};
+
 type Props = {
   kidCode: string;
 };
 
 const KidAppShell: React.FC<Props> = ({ kidCode }) => {
   const [activeTab, setActiveTab] = useState<TabId>("wallet");
-  const [themeId, setThemeId] = useState<ThemeId>(ThemeId.GOLDEN_TROPHY);
+  const [themeId, setThemeId] = useState<ThemeId>(() => {
+    if (typeof window === "undefined") return ThemeId.GOLDEN_TROPHY;
+    const savedThemeId = window.localStorage.getItem(`fw_theme_id:${kidCode || "unknown"}`);
+    return isThemeId(savedThemeId) ? savedThemeId : ThemeId.GOLDEN_TROPHY;
+  });
 const [pollMs, setPollMs] = useState(3000);
 const [isOnline, setIsOnline] = useState(true);
 const [history, setHistory] = useState<Transaction[]>([]);
+  const [recentlyPurchasedRewardIds, setRecentlyPurchasedRewardIds] = useState<Record<string, boolean>>({});
+  const [purchasingRewardIds, setPurchasingRewardIds] = useState<Record<string, boolean>>({});
+  const [isRewardsLoading, setIsRewardsLoading] = useState(false);
+  const [isBootLoading, setIsBootLoading] = useState(true);
   // 1) Источник задач от backend
   const [apiTasks, setApiTasks] = useState<ApiTask[]>([]);
   const [apiRewards, setApiRewards] = useState<any[]>([]);
@@ -101,6 +158,88 @@ const [history, setHistory] = useState<Transaction[]>([]);
   });
 
   const theme = THEMES[themeId];
+  const recentRewardsSessionKey = useMemo(
+    () => `fw_shop_recent_rewards:${kidCode || "unknown"}`,
+    [kidCode]
+  );
+  const themeStorageKey = useMemo(
+    () => `fw_theme_id:${kidCode || "unknown"}`,
+    [kidCode]
+  );
+  const rewardsCacheKey = useMemo(
+    () => `fw_shop_rewards_cache:${kidCode || "unknown"}`,
+    [kidCode]
+  );
+
+  const markRewardAsRecentlyPurchased = (rewardId: string) => {
+    if (!rewardId) return;
+    setRecentlyPurchasedRewardIds((prev) => ({ ...prev, [rewardId]: true }));
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.sessionStorage.getItem(recentRewardsSessionKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        setRecentlyPurchasedRewardIds(parsed as Record<string, boolean>);
+      }
+    } catch (e) {
+      console.warn("[KID] failed to restore recent purchases cache:", e);
+    }
+  }, [recentRewardsSessionKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const keys = Object.keys(recentlyPurchasedRewardIds);
+      if (keys.length === 0) {
+        window.sessionStorage.removeItem(recentRewardsSessionKey);
+        return;
+      }
+      window.sessionStorage.setItem(
+        recentRewardsSessionKey,
+        JSON.stringify(recentlyPurchasedRewardIds)
+      );
+    } catch (e) {
+      console.warn("[KID] failed to save recent purchases cache:", e);
+    }
+  }, [recentlyPurchasedRewardIds, recentRewardsSessionKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(rewardsCacheKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setApiRewards(parsed as any[]);
+      }
+    } catch (e) {
+      console.warn("[KID] failed to restore rewards cache:", e);
+    }
+  }, [rewardsCacheKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const savedThemeId = window.localStorage.getItem(themeStorageKey);
+      setThemeId(isThemeId(savedThemeId) ? savedThemeId : ThemeId.GOLDEN_TROPHY);
+    } catch (e) {
+      console.warn("[KID] failed to restore theme:", e);
+      setThemeId(ThemeId.GOLDEN_TROPHY);
+    }
+  }, [themeStorageKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(themeStorageKey, themeId);
+    } catch (e) {
+      console.warn("[KID] failed to persist theme:", e);
+    }
+  }, [themeId, themeStorageKey]);
 
   // Тема
   useEffect(() => {
@@ -176,6 +315,7 @@ const loadTasks = async () => {
   }
   // --- API: загрузка наград ребенка ---
 const loadRewards = async () => {
+  setIsRewardsLoading(true);
   try {
     if (!kidCode) return;
 
@@ -217,37 +357,69 @@ const loadRewards = async () => {
   }
 };
 // --- API: загрузка наград ребенка ---
-const loadRewards = async () => {
+const loadRewards = async (showLoader = false) => {
+  if (showLoader) setIsRewardsLoading(true);
   try {
     if (!kidCode) return;
 
     const res = await kidApi.listRewards(kidCode);
-    const allRewards = (res?.rewards ?? []) as any[];
-    
-    // Фильтруем награды только для текущего ребёнка
-    // Получаем child_id из whoami
-      const me = await kidApi.whoami(kidCode);
-      const myChildId = me?.child_id;  // ← ПРАВИЛЬНО!
-    
-// Показываем награды:
-// 1) Созданные для этого ребёнка (r.child_id === myChildId)
-// 2) ИЛИ общие награды без child_id (r.child_id === null или пустое)
-    const myRewards = allRewards.filter((r: any) => 
-      !r.child_id || r.child_id === myChildId
-    );
-    
-    console.log("[KID] loaded rewards:", myRewards.length, "из", allRewards.length);
-    
-    setApiRewards(myRewards);
+    const raw = res as any;
+    const allRewards = extractRewardsArray(raw);
+
+    console.log("[KID] loaded rewards:", allRewards.length, "keys:", Object.keys(raw ?? {}));
+    // Доверяем backend-фильтрации по invite code, чтобы не терять валидные карточки на фронте.
+    setApiRewards(allRewards);
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(rewardsCacheKey, JSON.stringify(allRewards));
+      } catch (cacheErr) {
+        console.warn("[KID] failed to persist rewards cache:", cacheErr);
+      }
+    }
   } catch (e) {
     console.error("[KID] loadRewards FAIL:", e);
+  } finally {
+    if (showLoader) setIsRewardsLoading(false);
+  }
+};
+
+const preloadDream = async () => {
+  try {
+    if (!kidCode) return;
+    const res = await kidApi.getMyDream(kidCode);
+    primeDreamCache(kidCode, res?.dream ?? null);
+  } catch (e) {
+    console.warn("[KID] preloadDream skipped:", e);
+    // Даже при сетевом сбое праймим null, чтобы не показывать промежуточный лоадер карточки.
+    if (kidCode) primeDreamCache(kidCode, null);
   }
 };
 
   // initial load
   useEffect(() => {
-    loadTasks();
-    loadRewards();  // ← ДОБАВИЛИ!
+    let isCancelled = false;
+    setIsBootLoading(true);
+
+    const failSafeTimer = window.setTimeout(() => {
+      if (!isCancelled) {
+        setIsRewardsLoading(false);
+        setIsBootLoading(false);
+      }
+    }, 15000);
+
+    void (async () => {
+      await Promise.allSettled([loadTasks(), loadRewards(true), preloadDream()]);
+      if (!isCancelled) {
+        setIsRewardsLoading(false);
+        setIsBootLoading(false);
+      }
+      window.clearTimeout(failSafeTimer);
+    })();
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(failSafeTimer);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kidCode]);
   // polling
@@ -256,15 +428,60 @@ useEffect(() => {
 
   const id = window.setInterval(() => {
     loadTasks();
-    loadRewards();
+    loadRewards(false);
   }, pollMs);
 
   return () => window.clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [kidCode, pollMs]);
 
+useEffect(() => {
+  if (activeTab !== "shop" || !kidCode) return;
+  void loadRewards(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [activeTab, kidCode]);
+
+useEffect(() => {
+  if (!kidCode || typeof document === "undefined") return;
+  const onVisible = () => {
+    if (document.visibilityState === "visible") {
+      void loadRewards(false);
+    }
+  };
+  document.addEventListener("visibilitychange", onVisible);
+  return () => document.removeEventListener("visibilitychange", onVisible);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [kidCode]);
+
   // ребенок нажал "выполнить"
   const handleCompleteMission = async (taskId: string) => {
+    const localTask = user.tasks.find((t) => t.id === taskId);
+    if (!localTask) return;
+    if (localTask.status !== TaskStatus.IDLE) return;
+
+    const reward = Number(localTask.reward || 0);
+
+    // Оптимистично сразу показываем "ждём одобрения..."
+    setUser((prev) => {
+      const nextTasks = prev.tasks.map((t) =>
+        t.id === taskId ? { ...t, status: TaskStatus.WAITING } : t
+      );
+      const waitingCount = nextTasks.filter((t) => t.status === TaskStatus.WAITING).length;
+      return {
+        ...prev,
+        tasks: nextTasks,
+        pendingBalance: prev.pendingBalance + reward,
+        notifications: {
+          ...prev.notifications,
+          missions: waitingCount,
+          wallet: prev.inventory.length,
+        },
+      };
+    });
+    setApiTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: "WAITING" } : t))
+    );
+
     try {
       console.log("[KID] completeTask click:", { kidCode, taskId });
 
@@ -274,6 +491,29 @@ useEffect(() => {
       await loadTasks();
     } catch (e) {
       console.error("[KID] completeTask FAIL:", e);
+
+      // Откат optimistic-обновления при ошибке сети/API
+      setUser((prev) => {
+        const nextTasks = prev.tasks.map((t) =>
+          t.id === taskId && t.status === TaskStatus.WAITING
+            ? { ...t, status: TaskStatus.IDLE }
+            : t
+        );
+        const waitingCount = nextTasks.filter((t) => t.status === TaskStatus.WAITING).length;
+        return {
+          ...prev,
+          tasks: nextTasks,
+          pendingBalance: Math.max(0, prev.pendingBalance - reward),
+          notifications: {
+            ...prev.notifications,
+            missions: waitingCount,
+            wallet: prev.inventory.length,
+          },
+        };
+      });
+      setApiTasks((prev) =>
+        prev.map((t) => (t.id === taskId && t.status === "WAITING" ? { ...t, status: "IDLE" } : t))
+      );
     }
   };
 
@@ -439,6 +679,17 @@ useEffect(() => {
 // Покупка награды через API
 const handlePurchaseReward = async (reward: Reward) => {
   if (user.balance < reward.price) return;
+  if (recentlyPurchasedRewardIds[reward.id]) return;
+  if (purchasingRewardIds[reward.id]) return;
+
+  const isPermanent = Boolean(
+    (reward as any)?.recurring ??
+    (reward as any)?.is_permanent ??
+    (reward as any)?.isPermanent ??
+    false
+  );
+
+  const shouldOptimisticallyHide = !isPermanent;
 
   try {
     if (!kidCode) {
@@ -446,6 +697,25 @@ const handlePurchaseReward = async (reward: Reward) => {
       alert('Код доступа не найден. Перезайдите в приложение.');
       return;
     }
+
+    // Мгновенный визуальный отклик при нажатии.
+    confetti({
+      particleCount: 200,
+      spread: 100,
+      origin: { y: 0.6 },
+      colors: ["#FFD700", theme.accent],
+    });
+
+    // Мгновенный UX-отклик: сразу отмечаем как купленное и списываем баланс.
+    setPurchasingRewardIds((prev) => ({ ...prev, [reward.id]: true }));
+    markRewardAsRecentlyPurchased(reward.id);
+    setUser((prev: any) => ({
+      ...prev,
+      balance: Math.max(0, Number(prev.balance ?? 0) - Number(reward.price ?? 0)),
+      purchasedRewards: shouldOptimisticallyHide
+        ? Array.from(new Set([...(prev.purchasedRewards ?? []), reward.id]))
+        : (prev.purchasedRewards ?? []),
+    }));
 
     console.log('[KID] purchaseReward START:', { 
       kidCode, 
@@ -458,14 +728,6 @@ const handlePurchaseReward = async (reward: Reward) => {
 const res = await kidApi.purchaseReward(kidCode, reward.id);
 
 console.log("[KID] purchaseReward SUCCESS:", res);
-
-// 2) ЭФФЕКТ
-confetti({
-  particleCount: 200,
-  spread: 100,
-  origin: { y: 0.6 },
-  colors: ["#FFD700", theme.accent],
-});
 
 // 3) ЛОКАЛЬНАЯ ИСТОРИЯ (минус)
 const tx = addTransaction(
@@ -490,14 +752,6 @@ const purchasedItem = {
   purchaseId,
 } as any; // <-- убираем боль от несовпадения PurchasedItem
 
-// 6) Перманентность: ВАЖНО - в UI мы прокидываем recurring
-// (см. ShopScreen mapping: recurring: r.is_permanent === 1)
-const isPermanent = Boolean(
-  (reward as any)?.recurring ??               // <-- КЛЮЧЕВО
-  (reward as any)?.is_permanent ??
-  (reward as any)?.isPermanent ??
-  false
-);
 // 7) Обновляем user
 setUser((prev: any) => ({
   ...prev,
@@ -515,7 +769,27 @@ setUser((prev: any) => ({
     await loadRewards();
   } catch (e) {
     console.error("[KID] purchaseReward FAIL:", e);
+    setRecentlyPurchasedRewardIds((prev) => {
+      if (!prev[reward.id]) return prev;
+      const next = { ...prev };
+      delete next[reward.id];
+      return next;
+    });
+    setUser((prev: any) => ({
+      ...prev,
+      balance: Number(prev.balance ?? 0) + Number(reward.price ?? 0),
+      purchasedRewards: shouldOptimisticallyHide
+        ? (prev.purchasedRewards ?? []).filter((id: string) => id !== reward.id)
+        : (prev.purchasedRewards ?? []),
+    }));
     alert("Ошибка при покупке награды: " + (e as any).message);
+  } finally {
+    setPurchasingRewardIds((prev) => {
+      if (!prev[reward.id]) return prev;
+      const next = { ...prev };
+      delete next[reward.id];
+      return next;
+    });
   }
 };
 
@@ -659,19 +933,25 @@ const handleReceiveReward = async (purchaseId: string) => {
             balance={user.balance}
             pendingBalance={user.pendingBalance}
             rewards={apiRewards
+              .map((r) => {
+                const id = String(r?.id ?? r?.reward_id ?? r?.rewardId ?? "");
+                return {
+                  id,
+                  title: String(r?.title ?? r?.name ?? "Награда"),
+                  price: Number(r?.price ?? r?.cost ?? r?.amount ?? 0),
+                  image: String(r?.image_url ?? r?.image ?? "").trim() || `https://picsum.photos/seed/${id || "reward"}/600/600`,
+                  icon: String(r?.icon ?? "🎁"),
+                  recurring: Boolean(r?.is_permanent === 1 || r?.is_permanent === true || r?.recurring),
+                };
+              })
+              .filter((r) => isAllowedRewardTitle(r.title))
               .filter((r) => !user.purchasedRewards.includes(r.id))
-              .map((r) => ({
-                id: r.id,
-                title: r.title,
-                price: r.price,
-                image: r.image_url || `https://picsum.photos/seed/${r.id}/600/600`,
-                icon: r.icon || '🎁',
-                recurring: r.is_permanent === 1,
-              }))
             }
             onPurchase={handlePurchaseReward}
             theme={theme}
             currencyIcon={user.currencyIcon}
+            recentlyPurchasedRewardIds={recentlyPurchasedRewardIds}
+            isLoading={isRewardsLoading}
           />
         );
 
@@ -687,7 +967,6 @@ const handleReceiveReward = async (purchaseId: string) => {
             currentThemeId={themeId}
             onThemeChange={setThemeId}
             isParentMode={user.isParentMode}
-            currencyIcon={user.currencyIcon}
           />
         );
 
@@ -695,6 +974,10 @@ const handleReceiveReward = async (purchaseId: string) => {
         return null;
     }
   };
+
+  if (isBootLoading) {
+    return <BootLoadingScreen />;
+  }
 
   const isEditorTab = activeTab === "editor";
 

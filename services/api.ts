@@ -6,6 +6,7 @@ const API_URL: string =
   "https://family-wallet-api.maltsevstas21.workers.dev";
 
 type AnyJson = Record<string, any>;
+type RequestOptions = RequestInit & { timeoutMs?: number };
 
 const asString = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 const isHttpUrl = (value: unknown): boolean => /^https?:\/\//i.test(asString(value));
@@ -107,26 +108,63 @@ const normalizeMagicImageResponse = (raw: AnyJson | null): KidMagicImageResponse
   };
 };
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+const isAbortError = (err: unknown): boolean =>
+  typeof err === "object" &&
+  err !== null &&
+  "name" in err &&
+  (err as { name?: string }).name === "AbortError";
+
+const timeoutMessageByPath = (path: string): string =>
+  path.includes("/api/magic/generate")
+    ? "Генерация не завершилась вовремя. Попробуй еще раз."
+    : "Сервер отвечает слишком долго. Попробуй еще раз.";
+
+const fetchWithTimeout = async (
+  url: string,
+  init: RequestInit,
+  timeoutMs?: number
+): Promise<Response> => {
+  if (!timeoutMs || timeoutMs <= 0 || init.signal) {
+    return fetch(url, init);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const requestUrl = `${API_URL}${path}`;
+  const { timeoutMs, ...requestOptions } = options;
   const requestInit: RequestInit = {
-    ...options,
+    ...requestOptions,
     headers: {
-      ...(options.headers || {}),
+      ...(requestOptions.headers || {}),
       // ставим content-type только когда есть body
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(requestOptions.body ? { "Content-Type": "application/json" } : {}),
     },
   };
 
   let res: Response;
   try {
-    res = await fetch(requestUrl, requestInit);
+    res = await fetchWithTimeout(requestUrl, requestInit, timeoutMs);
   } catch (firstErr) {
+    if (isAbortError(firstErr)) {
+      throw new Error(timeoutMessageByPath(path));
+    }
+
     // Telegram WebView иногда дает transient Load failed — повторяем один раз.
     await new Promise((resolve) => setTimeout(resolve, 250));
     try {
-      res = await fetch(requestUrl, requestInit);
-    } catch {
+      res = await fetchWithTimeout(requestUrl, requestInit, timeoutMs);
+    } catch (secondErr) {
+      if (isAbortError(secondErr)) {
+        throw new Error(timeoutMessageByPath(path));
+      }
       throw firstErr;
     }
   }
@@ -349,6 +387,7 @@ export const kidApi = {
       method: "POST",
       headers: { "X-Invite-Code": inviteCode },
       body: JSON.stringify(payload),
+      timeoutMs: 120000,
     })
       .then((raw) => normalizeMagicImageResponse(raw))
       .then((normalized) => {

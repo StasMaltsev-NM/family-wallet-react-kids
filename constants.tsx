@@ -52,7 +52,7 @@ export const INITIAL_REWARDS: Reward[] = [
 ];
 
 export const BADGES = [
-  { id: 'b1', name: 'Новичок', icon: '🐣', description: 'Выполнена первая миссия' },
+  { id: 'b1', name: 'Новичок', icon: '⭐', description: 'Выполнена первая миссия' },
   { id: 'b2', name: 'Копилка', icon: '💰', description: 'Накоплено 500 монет' },
   { id: 'b3', name: 'Трудяга', icon: '🛠️', description: 'Выполнено 10 миссий' },
   { id: 'b4', name: 'Богач', icon: '💎', description: 'Заработано 1000 монет всего' },

@@ -17,6 +17,7 @@ import {
   PurchasedItem,
 } from "../types";
 import DreamCard from "./DreamCard";
+import { getBalanceSizeTier } from "./balanceSizing";
 
 interface WalletScreenProps {
   inviteCode: string;
@@ -89,8 +90,9 @@ const WalletScreen: React.FC<WalletScreenProps> = ({
   };
 
   const pendingTasks = tasks.filter((t) => t.status === TaskStatus.WAITING);
-  const balanceDigits = String(Math.abs(Math.trunc(displayBalance))).length;
-  const balanceFontSizePx = Math.max(40, 60 - Math.max(0, balanceDigits - 5) * 6);
+  const balanceSizeTier = getBalanceSizeTier(displayBalance);
+  const balanceFontSizePx =
+    balanceSizeTier === "tight" ? 48 : balanceSizeTier === "compact" ? 54 : 60;
 
   return (
     <div className="flex flex-col px-6 pt-2 space-y-2">

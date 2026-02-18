@@ -19,6 +19,11 @@ type DreamUiStatus = "none" | "pending" | "active";
 const ACTIVE_EXISTING_ERROR = "У ребёнка уже есть активная мечта";
 const dreamCache = new Map<string, KidDreamApi | null>();
 
+export const primeDreamCache = (inviteCode: string, dream: KidDreamApi | null) => {
+  if (!inviteCode) return;
+  dreamCache.set(inviteCode, dream);
+};
+
 const toNumber = (value: unknown, fallback = 0): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -44,6 +49,16 @@ const normalizeError = (err: unknown): string => {
 const getRawErrorMessage = (err: unknown): string => {
   if (err instanceof Error) return err.message || "";
   return String(err ?? "");
+};
+
+const isTransientLoadError = (err: unknown): boolean => {
+  const raw = getRawErrorMessage(err).toLowerCase();
+  return (
+    raw.includes("load failed") ||
+    raw.includes("failed to fetch") ||
+    raw.includes("network") ||
+    raw.includes("timeout")
+  );
 };
 
 const DreamCard: React.FC<DreamCardProps> = ({
@@ -85,7 +100,12 @@ const DreamCard: React.FC<DreamCardProps> = ({
         setErrorMessage("");
       } catch (err) {
         if (!silent) {
-          setErrorMessage(normalizeError(err));
+          // Не показываем transient network-ошибки в карточке мечты при первичной загрузке.
+          if (isTransientLoadError(err)) {
+            setErrorMessage("");
+          } else {
+            setErrorMessage(normalizeError(err));
+          }
         } else {
           console.warn("[DREAM] silent load failed:", getRawErrorMessage(err));
         }
@@ -112,7 +132,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const uiStatus = useMemo(() => normalizeDreamStatus(serverDream), [serverDream]);
 
   useEffect(() => {
-    if (uiStatus !== "pending") return;
+    if (!(uiStatus === "pending" || uiStatus === "active")) return;
     const timer = window.setInterval(() => {
       void loadDream(true);
     }, 8000);
@@ -319,9 +339,23 @@ const DreamCard: React.FC<DreamCardProps> = ({
         <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
           ТВОЯ ГЛАВНАЯ МЕЧТА
         </p>
+        {isReached && (
+          <p className="mt-1 text-[11px] font-black uppercase tracking-[0.1em] text-[#FFD700]">
+            ГОТОВО!
+          </p>
+        )}
 
-        {uiStatus === "active" && (
-          <div className="mt-3 w-full rounded-[28px] bg-black/3 px-4 py-4 backdrop-blur-[0.3px]">
+        {statusHint && <p className="mt-3 text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>}
+        {isDreamImageSyncing && !dreamImageUrl && (
+          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/65">
+            Обновляем изображение мечты...
+          </p>
+        )}
+      </div>
+
+      {uiStatus === "active" && (
+        <div className="relative z-10 mt-auto pt-4">
+          <div className="w-full rounded-[28px] bg-black/3 px-4 py-4 backdrop-blur-[0.3px]">
             <div className="flex items-end gap-1.5 leading-none whitespace-nowrap">
               <span className="text-[17px] font-black italic uppercase" style={{ color: "#FFEA66" }}>
                 ОСТАЛОСЬ:
@@ -340,19 +374,11 @@ const DreamCard: React.FC<DreamCardProps> = ({
                 <span style={{ color: "#B88300" }}>★</span>
               </span>
             </div>
-            {isReached && <p className="mt-1 text-[11px] font-black uppercase text-[#FFD700]">ГОТОВО!</p>}
           </div>
-        )}
+        </div>
+      )}
 
-        {statusHint && <p className="mt-3 text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>}
-        {isDreamImageSyncing && !dreamImageUrl && (
-          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/65">
-            Обновляем изображение мечты...
-          </p>
-        )}
-      </div>
-
-      <div className="relative z-10 mt-auto pt-3">
+      <div className={`relative z-10 ${uiStatus === "active" ? "pt-3" : "mt-auto pt-3"}`}>
         <div className="h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
           <div
             className="h-full rounded-full transition-all duration-1000 relative"
@@ -380,7 +406,11 @@ const DreamCard: React.FC<DreamCardProps> = ({
         className="w-full p-8 rounded-[40px] border-2 bg-black/40 backdrop-blur-xl"
         style={{ borderColor: "rgba(255,255,255,0.05)" }}
       >
-        <p className="text-sm font-black uppercase opacity-60 tracking-wider">Загрузка мечты...</p>
+        <div className="animate-pulse space-y-4">
+          <div className="h-7 w-52 rounded-2xl bg-white/10" />
+          <div className="h-16 rounded-2xl bg-white/10" />
+          <div className="h-14 rounded-2xl bg-white/10" />
+        </div>
       </div>
     );
   }

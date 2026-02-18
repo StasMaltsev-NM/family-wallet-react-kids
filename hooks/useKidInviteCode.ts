@@ -52,8 +52,15 @@ function stripCodeFromUrl() {
 export function useKidInviteCode() {
   const [code, setCode] = useState<string>("");
 
-  // При старте: URL -> localStorage
+  // При старте: localStorage в приоритете, URL используется как fallback.
   useEffect(() => {
+    const fromLs = normalize(localStorage.getItem(LS_KEY));
+    if (fromLs) {
+      setCode(fromLs);
+      stripCodeFromUrl();
+      return;
+    }
+
     const fromUrl = readCodeFromUrl();
     if (fromUrl) {
       localStorage.setItem(LS_KEY, fromUrl);
@@ -61,9 +68,6 @@ export function useKidInviteCode() {
       stripCodeFromUrl(); // чтобы код не светился
       return;
     }
-
-    const fromLs = normalize(localStorage.getItem(LS_KEY));
-    if (fromLs) setCode(fromLs);
   }, []);
 
   const save = useCallback((next: string) => {

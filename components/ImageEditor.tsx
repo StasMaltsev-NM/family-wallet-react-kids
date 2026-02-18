@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Wand2, Camera, Upload, RefreshCw, Sparkles, Zap, Download, Share2 } from 'lucide-react';
+import { Camera, Upload, RefreshCw, Sparkles, Zap, Download, SquareArrowUp } from 'lucide-react';
 import { AppTheme } from '../types';
 import { kidApi } from '../services/api';
 
@@ -562,14 +562,14 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
                     isSharing ? 'opacity-60' : 'hover:scale-105 active:scale-95'
                   }`}
                   style={{
-                    borderColor: `${theme.accent}88`,
-                    backgroundColor: 'rgba(12,18,30,0.82)',
-                    color: theme.accent,
+                    borderColor: 'rgba(255,255,255,0.9)',
+                    backgroundColor: 'rgba(255,255,255,0.92)',
+                    color: '#121212',
                   }}
                   title="Поделиться в Telegram"
                   aria-label="Поделиться в Telegram"
                 >
-                  <Share2 size={20} />
+                  <SquareArrowUp size={20} />
                 </button>
               </div>
             )}
@@ -625,29 +625,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
             </div>
           </div>
 
-          {/* Custom Prompt */}
           <div className="space-y-4 pt-4">
-            <div className="relative">
-              <label className="text-[10px] font-black uppercase opacity-40 block mb-2 ml-2 tracking-widest italic">Твой секретный промпт:</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  disabled={isProcessing}
-                  value={prompt}
-                  onChange={(e) => {
-                    setPrompt(e.target.value);
-                  }}
-                  placeholder="напр. Сделай меня супергероем..."
-                  className="w-full p-6 rounded-[28px] bg-white/5 border-2 transition-all font-bold text-base focus:outline-none"
-                  style={{ 
-                    borderColor: prompt && !activePreset ? theme.accent : 'rgba(255,255,255,0.1)',
-                    color: theme.text 
-                  }}
-                />
-                <Wand2 size={24} className={`absolute right-6 top-1/2 -translate-y-1/2 transition-all ${prompt ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} style={{ color: theme.accent }} />
-              </div>
-            </div>
-
             <div className="flex space-x-4">
               <button 
                 onClick={reset}

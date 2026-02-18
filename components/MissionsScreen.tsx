@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Star, Clock, Lock, Sparkles, Wallet, TrendingUp } from 'lucide-react';
 import { Task, TaskStatus, AppTheme } from '../types';
+import { getBalanceSizeTier } from './balanceSizing';
 
 interface MissionsScreenProps {
   tasks: Task[];
@@ -23,6 +24,14 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
   pendingBalance
 }) => {
   const [isPendingBumping, setIsPendingBumping] = useState(false);
+  const balanceTier = getBalanceSizeTier(balance);
+  const pendingTier = getBalanceSizeTier(pendingBalance);
+  const balanceValueClass =
+    balanceTier === "tight" ? "text-[13px]" : balanceTier === "compact" ? "text-[14px]" : "text-base";
+  const balanceIconClass =
+    balanceTier === "tight" ? "text-[8px]" : balanceTier === "compact" ? "text-[9px]" : "text-[10px]";
+  const pendingValueClass =
+    pendingTier === "tight" ? "text-[10px]" : pendingTier === "compact" ? "text-[11px]" : "text-xs";
 
   useEffect(() => {
     if (pendingBalance > 0) {
@@ -51,8 +60,8 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
             style={{ borderColor: theme.accent, boxShadow: `0 4px 15px ${theme.accent}33` }}
           >
             <Wallet size={14} style={{ color: theme.accent }} />
-            <span className="font-black text-base leading-none tracking-tight">
-              {balance} <span className="text-[10px] opacity-70">{currencyIcon}</span>
+            <span className={`font-black leading-none tracking-tight ${balanceValueClass}`}>
+              {balance} <span className={`${balanceIconClass} opacity-70`}>{currencyIcon}</span>
             </span>
           </div>
 
@@ -68,7 +77,7 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
             <TrendingUp size={12} className={pendingBalance > 0 ? "text-orange-400 animate-bounce" : "text-gray-500"} />
             <div className="flex flex-col items-end">
               <span className="text-[6px] font-black uppercase opacity-60 leading-none mb-0.5">В пути</span>
-              <span className="font-black text-xs text-orange-400 leading-none">
+              <span className={`font-black text-orange-400 leading-none ${pendingValueClass}`}>
                 +{pendingBalance} {currencyIcon}
               </span>
             </div>
