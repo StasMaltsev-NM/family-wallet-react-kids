@@ -297,17 +297,10 @@ export const kidApi = {
       mode?: string;
     }
   ) {
-    const payload = {
-      ...body,
-      provider: body.provider ?? "flux2",
-      model: body.model ?? "flux-2-pro",
-      mode: body.mode ?? "image-to-image",
-    };
-
     return request<AnyJson>("/api/magic/generate", {
       method: "POST",
       headers: { "X-Invite-Code": inviteCode },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     }).then((raw) => normalizeMagicImageResponse(raw));
   },
 };

@@ -15,28 +15,28 @@ const STYLE_PRESETS = [
     label: 'Роблокс', 
     icon: '🤖', 
     color: '#00A2FF',
-    prompt: 'Transform this photo into a 3D blocky Roblox character and world. Use bright colors, plastic-like textures, and chunky blocky shapes. Make it look exactly like a Roblox game screenshot.' 
+    prompt: 'Use ONLY the uploaded photo as source. Keep the same person, face, pose and main composition. Apply Roblox style: 3D blocky look, bright colors, plastic textures, chunky geometry. Single image only, no collage, no split panels, no extra characters, no text.' 
   },
   { 
     id: 'ghibli', 
     label: 'Гибли', 
     icon: '🌳', 
     color: '#4CAF50',
-    prompt: 'Redraw this image in the iconic Studio Ghibli anime style. Use soft hand-painted watercolor textures, lush greenery, a nostalgic and magical atmosphere, inspired by Hayao Miyazaki films.' 
+    prompt: 'Use ONLY the uploaded photo as source. Keep the same person, face, pose and main composition. Redraw in Studio Ghibli inspired style: soft hand-painted textures, warm cinematic lighting, lush colors. Single image only, no collage, no split panels, no text.' 
   },
   { 
     id: 'anime', 
     label: 'Аниме', 
     icon: '✨', 
     color: '#E91E63',
-    prompt: 'Convert this photo into a vibrant modern high-quality anime style. Use sharp line art, dramatic cinematic lighting, expressive eyes, and saturated colors. Make it look like a scene from a top-tier anime.' 
+    prompt: 'Use ONLY the uploaded photo as source. Keep the same person, face, pose and main composition. Convert to modern high-quality anime: clean line art, cinematic light, saturated colors. Single image only, no collage, no split panels, no text.' 
   },
   { 
     id: 'minecraft', 
     label: 'Майнкрафт', 
     icon: '🧱', 
     color: '#795548',
-    prompt: 'Pixelate this entire image into a 3D Minecraft world made of cubes (voxels). Use 8-bit textures, blocky characters, and the classic green and brown aesthetic of Minecraft landscapes.' 
+    prompt: 'Use ONLY the uploaded photo as source. Keep the same person, face, pose and main composition. Transform into Minecraft voxel style: blocky cubes, pixel textures, game-like lighting. Single image only, no collage, no split panels, no text.' 
   },
 ];
 
