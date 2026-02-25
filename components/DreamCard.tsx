@@ -114,7 +114,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const lastDreamLoadAt = useRef(0);
   const dreamImageRequestInFlight = useRef(false);
   const lastDreamImageRequestAt = useRef(0);
-  const autoDreamImageRefreshAttempted = useRef<Set<string>>(new Set());
 
   const loadDream = useCallback(
     async (silent = false, force = false) => {
@@ -224,7 +223,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
     setIsDreamImageUnsupported(false);
     if (!dreamId) {
       setIsDreamImageSyncing(false);
-      autoDreamImageRefreshAttempted.current.clear();
       return;
     }
   }, [dreamId, uiStatus]);
@@ -234,9 +232,6 @@ const DreamCard: React.FC<DreamCardProps> = ({
     if (dreamImageUrl) return;
     if (!(uiStatus === "pending" || uiStatus === "active")) return;
     if (isDreamImageUnsupported || dreamImageRequestInFlight.current) return;
-    const autoAttemptKey = `${dreamId}:${uiStatus}`;
-    if (reason === "auto" && autoDreamImageRefreshAttempted.current.has(autoAttemptKey)) return;
-    if (reason === "auto") autoDreamImageRefreshAttempted.current.add(autoAttemptKey);
 
     const now = Date.now();
     if (now - lastDreamImageRequestAt.current < 5000) return;
@@ -248,11 +243,28 @@ const DreamCard: React.FC<DreamCardProps> = ({
     try {
       const res = await kidApi.regenerateDreamImage(inviteCode, dreamId, dreamTitle);
       const nextDream = normalizeDreamPayload(res?.dream ?? null);
-      if (nextDream) {
-        dreamCache.set(inviteCode, nextDream);
-        setServerDream(nextDream);
+      const generatedImageUrl = firstNonEmptyString([
+        res?.image_url,
+        nextDream?.image_url,
+      ]);
+      if (generatedImageUrl) {
+        setServerDream((prev) =>
+          normalizeDreamPayload({
+            ...(prev ?? {}),
+            ...(nextDream ?? {}),
+            image_url: generatedImageUrl,
+          } as KidDreamApi)
+        );
       }
-      await loadDream(true);
+      if (nextDream) {
+        const mergedDream = normalizeDreamPayload({
+          ...nextDream,
+          image_url: firstNonEmptyString([generatedImageUrl, nextDream.image_url]),
+        });
+        dreamCache.set(inviteCode, mergedDream);
+        setServerDream(mergedDream);
+      }
+      await loadDream(true, true);
     } catch (err) {
       const raw = getRawErrorMessage(err);
       const rawLower = raw.toLowerCase();
@@ -289,6 +301,16 @@ const DreamCard: React.FC<DreamCardProps> = ({
     if (dreamImageUrl || isDreamImageUnsupported) return;
     if (!(uiStatus === "pending" || uiStatus === "active")) return;
     void requestDreamImageRefresh("auto");
+  }, [dreamId, dreamImageUrl, isDreamImageUnsupported, requestDreamImageRefresh, uiStatus]);
+
+  useEffect(() => {
+    if (!dreamId) return;
+    if (dreamImageUrl || isDreamImageUnsupported) return;
+    if (!(uiStatus === "pending" || uiStatus === "active")) return;
+    const timer = window.setInterval(() => {
+      void requestDreamImageRefresh("auto");
+    }, 9000);
+    return () => window.clearInterval(timer);
   }, [dreamId, dreamImageUrl, isDreamImageUnsupported, requestDreamImageRefresh, uiStatus]);
 
   useEffect(() => {
