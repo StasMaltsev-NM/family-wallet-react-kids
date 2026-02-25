@@ -183,6 +183,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
     if (!inviteCode || typeof document === "undefined") return;
     const onVisible = () => {
       if (document.visibilityState === "visible") {
+        setIsDreamImageUnsupported(false);
         void loadDream(true, true);
       }
     };
@@ -219,13 +220,14 @@ const DreamCard: React.FC<DreamCardProps> = ({
       };
 
   useEffect(() => {
+    // После смены статуса (pending -> active) пробуем генерацию снова.
     setIsDreamImageUnsupported(false);
     if (!dreamId) {
       setIsDreamImageSyncing(false);
       autoDreamImageRefreshAttempted.current.clear();
       return;
     }
-  }, [dreamId]);
+  }, [dreamId, uiStatus]);
 
   const requestDreamImageRefresh = useCallback(async (reason: "auto" | "manual" = "auto") => {
     if (!inviteCode || !dreamId || !dreamTitle) return;
