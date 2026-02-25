@@ -29,6 +29,35 @@ const toNumber = (value: unknown, fallback = 0): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const firstNonEmptyString = (values: unknown[]): string => {
+  for (const value of values) {
+    const next = typeof value === "string" ? value.trim() : "";
+    if (next) return next;
+  }
+  return "";
+};
+
+const normalizeDreamPayload = (dream: KidDreamApi | null): KidDreamApi | null => {
+  if (!dream || typeof dream !== "object") return null;
+  const raw = dream as Record<string, unknown>;
+  const normalizedImageUrl = firstNonEmptyString([
+    raw.image_url,
+    raw.imageUrl,
+    raw.image,
+    raw.dream_image_url,
+    raw.dreamImageUrl,
+    raw.photo_url,
+    raw.photoUrl,
+    raw.generated_image_url,
+    raw.generatedImageUrl,
+  ]);
+  if (!normalizedImageUrl) return dream;
+  return {
+    ...dream,
+    image_url: normalizedImageUrl,
+  };
+};
+
 const normalizeDreamStatus = (dream: KidDreamApi | null): DreamUiStatus => {
   if (!dream) return "none";
   const rawStatus = String(dream.status ?? "").toLowerCase();
@@ -81,20 +110,28 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const [errorMessage, setErrorMessage] = useState("");
   const [isDreamImageSyncing, setIsDreamImageSyncing] = useState(false);
   const [isDreamImageUnsupported, setIsDreamImageUnsupported] = useState(false);
+  const dreamLoadInFlight = useRef(false);
+  const lastDreamLoadAt = useRef(0);
   const dreamImageRequestInFlight = useRef(false);
   const lastDreamImageRequestAt = useRef(0);
   const autoDreamImageRefreshAttempted = useRef<Set<string>>(new Set());
 
   const loadDream = useCallback(
-    async (silent = false) => {
+    async (silent = false, force = false) => {
       if (!inviteCode) {
         setIsLoading(false);
         return;
       }
+      const now = Date.now();
+      if (dreamLoadInFlight.current && !force) return;
+      if (!force && silent && now - lastDreamLoadAt.current < 1500) return;
+
+      dreamLoadInFlight.current = true;
+      lastDreamLoadAt.current = now;
       if (!silent) setIsLoading(true);
       try {
         const res = await kidApi.getMyDream(inviteCode);
-        const nextDream = res?.dream ?? null;
+        const nextDream = normalizeDreamPayload(res?.dream ?? null);
         dreamCache.set(inviteCode, nextDream);
         setServerDream(nextDream);
         setErrorMessage("");
@@ -110,6 +147,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
           console.warn("[DREAM] silent load failed:", getRawErrorMessage(err));
         }
       } finally {
+        dreamLoadInFlight.current = false;
         if (!silent) setIsLoading(false);
       }
     },
@@ -132,12 +170,25 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const uiStatus = useMemo(() => normalizeDreamStatus(serverDream), [serverDream]);
 
   useEffect(() => {
-    if (!(uiStatus === "pending" || uiStatus === "active")) return;
+    if (!inviteCode) return;
+    const refreshMs =
+      uiStatus === "none" ? 3000 : uiStatus === "pending" ? 4000 : 8000;
     const timer = window.setInterval(() => {
       void loadDream(true);
-    }, 8000);
+    }, refreshMs);
     return () => window.clearInterval(timer);
-  }, [uiStatus, loadDream]);
+  }, [inviteCode, uiStatus, loadDream]);
+
+  useEffect(() => {
+    if (!inviteCode || typeof document === "undefined") return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void loadDream(true, true);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [inviteCode, loadDream]);
 
   const dreamId = String(serverDream?.id ?? "");
   const dreamTitle = String(serverDream?.title ?? "");
@@ -149,8 +200,12 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const isReached = uiStatus === "active" && targetAmount > 0 && remainingAmount <= 0;
   const isLargeTargetAmount = String(Math.trunc(targetAmount)).length >= 6;
   const sumValueClass = isLargeTargetAmount ? "text-[17px]" : "text-[20px]";
-  const dreamImageUrl =
-    typeof serverDream?.image_url === "string" ? String(serverDream.image_url).trim() : "";
+  const dreamImageUrl = firstNonEmptyString([
+    serverDream?.image_url,
+    (serverDream as Record<string, unknown> | null)?.image,
+    (serverDream as Record<string, unknown> | null)?.dream_image_url,
+    (serverDream as Record<string, unknown> | null)?.photo_url,
+  ]);
   const heroBackgroundStyle = dreamImageUrl
     ? {
         backgroundImage: `linear-gradient(160deg, rgba(10,12,16,0.48), rgba(12,13,17,0.74)), radial-gradient(circle at 30% 30%, rgba(255,198,88,0.32), transparent 46%), url(${dreamImageUrl})`,
@@ -177,8 +232,9 @@ const DreamCard: React.FC<DreamCardProps> = ({
     if (dreamImageUrl) return;
     if (!(uiStatus === "pending" || uiStatus === "active")) return;
     if (isDreamImageUnsupported || dreamImageRequestInFlight.current) return;
-    if (reason === "auto" && autoDreamImageRefreshAttempted.current.has(dreamId)) return;
-    if (reason === "auto") autoDreamImageRefreshAttempted.current.add(dreamId);
+    const autoAttemptKey = `${dreamId}:${uiStatus}`;
+    if (reason === "auto" && autoDreamImageRefreshAttempted.current.has(autoAttemptKey)) return;
+    if (reason === "auto") autoDreamImageRefreshAttempted.current.add(autoAttemptKey);
 
     const now = Date.now();
     if (now - lastDreamImageRequestAt.current < 5000) return;
@@ -189,7 +245,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
 
     try {
       const res = await kidApi.regenerateDreamImage(inviteCode, dreamId, dreamTitle);
-      const nextDream = res?.dream ?? null;
+      const nextDream = normalizeDreamPayload(res?.dream ?? null);
       if (nextDream) {
         dreamCache.set(inviteCode, nextDream);
         setServerDream(nextDream);
@@ -259,12 +315,12 @@ const DreamCard: React.FC<DreamCardProps> = ({
     setErrorMessage("");
     try {
       const res = await kidApi.createDream(inviteCode, title);
-      const createdDream = res?.dream ?? {
+      const createdDream = normalizeDreamPayload(res?.dream ?? {
         title,
         status: "pending",
         target_amount: 0,
         current_amount: 0,
-      };
+      });
       dreamCache.set(inviteCode, createdDream);
       setServerDream(createdDream);
       setInputTitle("");
