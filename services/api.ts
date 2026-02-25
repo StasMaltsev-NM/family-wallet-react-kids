@@ -346,11 +346,24 @@ export const kidApi = {
       const normalized = msg.toLowerCase();
       return normalized.includes("http 404") || normalized.includes("not found");
     };
+    const isMissingRoutePayload = (raw: AnyJson | null | undefined) => {
+      const code = asString(raw?.code).toUpperCase();
+      const error = asString(raw?.error).toLowerCase();
+      const message = asString(raw?.message).toLowerCase();
+      return code === "NOT_FOUND" || error.includes("not found") || message.includes("not found");
+    };
+    const callWithMissingRouteDetection = async (path: string) => {
+      const response = await call(path);
+      if (isMissingRoutePayload(response as AnyJson)) {
+        throw new Error(`HTTP 404: Not found: ${path}`);
+      }
+      return response;
+    };
 
-    return call("/api/dreams/regenerate-image").catch((err) => {
+    return callWithMissingRouteDetection("/api/dreams/regenerate-image").catch((err) => {
       const msg = err instanceof Error ? err.message : "";
       if (!isMissingRouteError(msg)) throw err;
-      return call("/api/dreams/generate-image");
+      return callWithMissingRouteDetection("/api/dreams/generate-image");
     });
   },
 
