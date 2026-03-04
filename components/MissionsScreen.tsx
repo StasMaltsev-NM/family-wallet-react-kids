@@ -27,11 +27,11 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
   const balanceTier = getBalanceSizeTier(balance);
   const pendingTier = getBalanceSizeTier(pendingBalance);
   const balanceValueClass =
-    balanceTier === "tight" ? "text-[13px]" : balanceTier === "compact" ? "text-[14px]" : "text-base";
+    balanceTier === "tight" ? "text-[12px] sm:text-[13px]" : balanceTier === "compact" ? "text-[13px] sm:text-[14px]" : "text-[14px] sm:text-base";
   const balanceIconClass =
     balanceTier === "tight" ? "text-[8px]" : balanceTier === "compact" ? "text-[9px]" : "text-[10px]";
   const pendingValueClass =
-    pendingTier === "tight" ? "text-[10px]" : pendingTier === "compact" ? "text-[11px]" : "text-xs";
+    pendingTier === "tight" ? "text-[9px] sm:text-[10px]" : pendingTier === "compact" ? "text-[10px] sm:text-[11px]" : "text-[11px] sm:text-xs";
 
   useEffect(() => {
     if (pendingBalance > 0) {
@@ -42,21 +42,21 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
   }, [pendingBalance]);
 
   return (
-    <div className="flex flex-col pt-8 pb-32 px-6 min-h-screen">
-      <div className="mb-10 relative flex justify-between items-start">
+    <div className="flex flex-col pt-5 sm:pt-8 pb-28 sm:pb-32 px-4 sm:px-6 md:px-7 min-h-screen">
+      <div className="mb-8 sm:mb-10 relative flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-0">
         {/* Title Section (Left) */}
         <div className="relative">
           <div className="absolute -top-4 -left-4 w-16 h-16 bg-white/5 rounded-full blur-2xl animate-pulse" />
-          <h1 className="text-5xl font-black italic uppercase leading-[0.85] tracking-tighter" style={{ color: theme.text }}>
+          <h1 className="text-4xl sm:text-5xl font-black italic uppercase leading-[0.85] tracking-tighter" style={{ color: theme.text }}>
             Твои <br />
             <span style={{ color: theme.accent }}>Миссии</span>
           </h1>
         </div>
 
         {/* Indicators Section (Right) */}
-        <div className="flex flex-col items-end space-y-3 pt-1">
+        <div className="flex flex-col items-end space-y-2.5 sm:space-y-3 pt-0 sm:pt-1 self-end sm:self-auto">
           <div 
-            className="flex items-center space-x-2 px-4 py-2 rounded-2xl border-2 bg-black/40 backdrop-blur-md transition-all duration-300"
+            className="flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-2xl border-2 bg-black/40 backdrop-blur-md transition-all duration-300"
             style={{ borderColor: theme.accent, boxShadow: `0 4px 15px ${theme.accent}33` }}
           >
             <Wallet size={14} style={{ color: theme.accent }} />
@@ -66,7 +66,7 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
           </div>
 
           <div 
-            className={`flex items-center space-x-2 px-4 py-2 rounded-2xl border-2 border-dashed bg-orange-500/10 transition-all duration-500 ${
+            className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-2xl border-2 border-dashed bg-orange-500/10 transition-all duration-500 ${
               isPendingBumping ? 'scale-110 shadow-[0_0_20px_rgba(249,115,22,0.4)]' : 'scale-100'
             }`}
             style={{ 
@@ -99,7 +99,7 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
           </div>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-4 sm:gap-6">
           {tasks.map((task) => {
             const isWaiting = task.status === TaskStatus.WAITING;
             const isConfirmed = task.status === TaskStatus.CONFIRMED;
@@ -108,7 +108,7 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
             return (
               <div 
                 key={task.id}
-                className={`group relative overflow-hidden p-6 rounded-[35px] border-2 border-b-[10px] transition-all duration-500 ${
+                className={`group relative overflow-hidden p-4 sm:p-6 rounded-[24px] sm:rounded-[35px] border-2 border-b-[8px] sm:border-b-[10px] transition-all duration-500 ${
                   isConfirmed ? 'opacity-40 grayscale scale-[0.98]' : 'hover:scale-[1.02] active:scale-95'
                 }`}
                 style={{ 
@@ -121,10 +121,10 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
                   <Star size={140} fill="white" />
                 </div>
 
-                <div className="flex items-center justify-between mb-6 relative z-10">
-                  <div className="flex items-center space-x-5">
+                <div className="flex items-center justify-between mb-5 sm:mb-6 relative z-10 gap-2">
+                  <div className="flex items-center space-x-3 sm:space-x-5 min-w-0">
                     <div 
-                      className={`w-16 h-16 rounded-[22px] flex items-center justify-center text-4xl shrink-0 transition-all duration-500 ${isWaiting ? 'animate-pulse' : 'group-hover:rotate-12'}`}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-[18px] sm:rounded-[22px] flex items-center justify-center text-[30px] sm:text-4xl shrink-0 transition-all duration-500 ${isWaiting ? 'animate-pulse' : 'group-hover:rotate-12'}`}
                       style={{ 
                         backgroundColor: `${rewardColor}15`,
                         border: `2px solid ${rewardColor}33`,
@@ -133,18 +133,18 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
                     >
                       {task.icon}
                     </div>
-                    <div>
-                      <h3 className="text-xl font-black uppercase tracking-tight leading-none mb-1.5">{task.title}</h3>
-                      <p className="text-[11px] opacity-50 font-bold uppercase leading-tight max-w-[160px]">{task.description}</p>
+                    <div className="min-w-0">
+                      <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight leading-none mb-1.5">{task.title}</h3>
+                      <p className="text-[10px] sm:text-[11px] opacity-50 font-bold uppercase leading-tight max-w-[130px] sm:max-w-[160px]">{task.description}</p>
                     </div>
                   </div>
                   
                   <div className="flex flex-col items-end">
                     <div className="text-[10px] font-black uppercase opacity-30 mb-1">Награда</div>
-                    <div className="flex items-center font-black text-3xl italic" style={{ color: rewardColor }}>
+                    <div className="flex items-center font-black text-[28px] sm:text-3xl italic whitespace-nowrap" style={{ color: rewardColor }}>
                       <span className="text-base mr-1">+</span>
                       {task.reward}
-                      <span className="ml-1 text-xl">{currencyIcon}</span>
+                      <span className="ml-1 text-lg sm:text-xl">{currencyIcon}</span>
                     </div>
                   </div>
                 </div>
@@ -153,7 +153,7 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
 {task.status === TaskStatus.IDLE ? (
   <button
     onClick={() => onComplete(task.id)}
-    className="w-full glossy-btn py-5 rounded-[22px] font-black text-lg uppercase tracking-widest transition-all hover:brightness-110 active:scale-95 flex items-center justify-center space-x-3"
+    className="w-full glossy-btn py-4 sm:py-5 rounded-[18px] sm:rounded-[22px] font-black text-base sm:text-lg uppercase tracking-[0.16em] sm:tracking-widest transition-all hover:brightness-110 active:scale-95 flex items-center justify-center space-x-2.5 sm:space-x-3"
     style={{
       backgroundColor: theme.accent,
       color: theme.bg,
@@ -165,14 +165,14 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
   </button>
 ) : task.status === TaskStatus.WAITING ? (
   <div
-    className="w-full py-5 rounded-[22px] flex items-center justify-center space-x-3 border-4 border-dashed font-black uppercase text-sm animate-pulse transition-all duration-500"
+    className="w-full py-4 sm:py-5 rounded-[18px] sm:rounded-[22px] flex items-center justify-center space-x-2.5 sm:space-x-3 border-[3px] sm:border-4 border-dashed font-black uppercase text-xs sm:text-sm animate-pulse transition-all duration-500"
     style={{ borderColor: theme.accent, color: theme.accent }}
   >
     <Clock size={22} />
     <span>Ждём одобрения...</span>
   </div>
 ) : (
-  <div className="w-full py-4 rounded-2xl bg-white/5 text-center font-black opacity-30 uppercase text-[11px] tracking-[0.4em] flex items-center justify-center space-x-2">
+  <div className="w-full py-4 rounded-2xl bg-white/5 text-center font-black opacity-30 uppercase text-[10px] sm:text-[11px] tracking-[0.22em] sm:tracking-[0.4em] flex items-center justify-center space-x-2">
     <Lock size={16} />
     <span>Миссия выполнена</span>
   </div>
@@ -185,11 +185,11 @@ const MissionsScreen: React.FC<MissionsScreenProps> = ({
       )}
 
       {!tasks.every(t => t.status === TaskStatus.CONFIRMED) && (
-        <div className="mt-12 p-5 rounded-3xl bg-white/5 border border-white/5 flex items-center space-x-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-           <div className="w-12 h-12 rounded-2xl bg-yellow-500/20 flex items-center justify-center text-yellow-500 shrink-0">
+        <div className="mt-10 sm:mt-12 p-4 sm:p-5 rounded-3xl bg-white/5 border border-white/5 flex items-center space-x-3 sm:space-x-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-yellow-500/20 flex items-center justify-center text-yellow-500 shrink-0">
              <Star size={24} fill="currentColor" />
            </div>
-           <p className="text-[10px] font-black uppercase opacity-50 leading-snug">
+           <p className="text-[9px] sm:text-[10px] font-black uppercase opacity-50 leading-snug">
              Круто! Каждая миссия <br />
              приближает тебя к <span style={{ color: theme.accent }}>ТВОЕЙ МЕЧТЕ!</span>
            </p>

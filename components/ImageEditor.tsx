@@ -110,13 +110,19 @@ const clearMagicLensCache = (cacheKey: string): void => {
   }
 };
 
-const normalizeImageForMagic = async (dataUrl: string): Promise<string> => {
+const normalizeImageForMagic = async (
+  dataUrl: string,
+  options: { maxSide?: number; quality?: number } = {},
+): Promise<string> => {
   if (!dataUrl || !dataUrl.startsWith("data:image/")) return dataUrl;
+
+  const maxSide = Math.max(320, Math.min(1024, Number(options.maxSide) || 896));
+  const qualityRaw = Number(options.quality);
+  const quality = Number.isFinite(qualityRaw) ? Math.max(0.45, Math.min(0.92, qualityRaw)) : 0.82;
 
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const maxSide = 896;
       const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
       const width = Math.max(1, Math.round(img.width * scale));
       const height = Math.max(1, Math.round(img.height * scale));
@@ -129,7 +135,7 @@ const normalizeImageForMagic = async (dataUrl: string): Promise<string> => {
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", 0.82));
+      resolve(canvas.toDataURL("image/jpeg", quality));
     };
     img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
@@ -147,6 +153,15 @@ const buildMagicFileName = (ext: string): string =>
   `vey-magic-${new Date().toISOString().replace(/[:.]/g, '-')}.${ext}`;
 
 const isHttpUrl = (value: string): boolean => /^https?:\/\//i.test(String(value || '').trim());
+const isTransportLoadError = (err: unknown): boolean => {
+  const message = String((err as any)?.message || err || '').toLowerCase();
+  return (
+    message.includes('load failed') ||
+    message.includes('failed to fetch') ||
+    message.includes('network') ||
+    message.includes('timeout')
+  );
+};
 const TELEGRAM_SHARE_BASE = 'https://t.me/share/url';
 const DATA_IMAGE_URL_RE = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/;
 
@@ -400,11 +415,48 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
 
     const job = (async (): Promise<MagicLensGenerateOutcome> => {
       try {
-        const result = await kidApi.generateMagicImage(kidCode, {
-          world: worldForRequest,
-          photo: image,
-          prompt: buildStrictMagicPrompt(finalPrompt),
-        });
+        let sourceImage = image;
+        const callGenerate = (photoPayload: string) =>
+          kidApi.generateMagicImage(kidCode, {
+            world: worldForRequest,
+            photo: photoPayload,
+            prompt: buildStrictMagicPrompt(finalPrompt),
+          });
+
+        let result: Awaited<ReturnType<typeof callGenerate>> | null = null;
+        const variants: Array<{ maxSide: number; quality: number }> = [
+          { maxSide: 896, quality: 0.82 },
+          { maxSide: 640, quality: 0.72 },
+          { maxSide: 512, quality: 0.65 },
+        ];
+
+        let lastError: unknown = null;
+        for (let index = 0; index < variants.length; index += 1) {
+          const variant = variants[index];
+          if (index > 0 && sourceImage.startsWith('data:image/')) {
+            const compactImage = await normalizeImageForMagic(sourceImage, variant);
+            if (compactImage && compactImage !== sourceImage) {
+              sourceImage = compactImage;
+              if (isMountedRef.current) setImage(compactImage);
+            }
+          }
+
+          try {
+            result = await callGenerate(sourceImage);
+            lastError = null;
+            break;
+          } catch (attemptErr) {
+            lastError = attemptErr;
+            const canRetry =
+              isTransportLoadError(attemptErr) &&
+              sourceImage.startsWith('data:image/') &&
+              index < variants.length - 1;
+            if (!canRetry) break;
+            await new Promise((resolve) => setTimeout(resolve, 350 * (index + 1)));
+          }
+        }
+
+        if (!result) throw lastError || new Error('magic_generate_failed');
 
         if (result?.image_url) {
           const resolvedShareUrl = isHttpUrl(String((result as any)?.share_url || ''))
@@ -414,7 +466,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
             : null;
           writeMagicLensCache(cacheKey, {
             v: MAGIC_LENS_CACHE_VERSION,
-            image,
+            image: sourceImage,
             editedImage: result.image_url,
             editedShareUrl: resolvedShareUrl,
             prompt: finalPrompt,
@@ -467,35 +519,36 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
   };
 
   return (
-    <div className="flex flex-col pt-8 pb-32 px-6 min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-4xl font-black italic uppercase leading-tight" style={{ color: '#FFFFFF' }}>
+    <div className="flex flex-col pt-5 sm:pt-8 pb-28 sm:pb-32 px-4 sm:px-6 md:px-7 min-h-screen">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-[38px] sm:text-4xl font-black italic uppercase leading-tight" style={{ color: '#FFFFFF' }}>
           Студия
         </h1>
-        <p className="opacity-40 font-bold uppercase text-[10px] tracking-[0.2em] mt-2">Преврати фото в приключение!</p>
+        <p className="opacity-40 font-bold uppercase text-[9px] sm:text-[10px] tracking-[0.18em] sm:tracking-[0.2em] mt-2">Преврати фото в приключение!</p>
       </div>
 
       {!image ? (
         <div 
-          className="flex flex-col items-center justify-center space-y-8 p-12 rounded-[48px] border-4 border-dashed transition-all duration-500"
+          className="flex flex-col items-center justify-center space-y-6 sm:space-y-8 p-6 sm:p-12 rounded-[28px] sm:rounded-[48px] border-[3px] sm:border-4 border-dashed transition-all duration-500"
           style={{ borderColor: 'rgba(255,255,255,0.05)', backgroundColor: theme.surface }}
         >
           <div className="relative">
             <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full animate-pulse" />
-            <div className="relative p-10 rounded-full bg-white/5 border-2 border-white/5 shadow-inner">
-              <Camera size={64} className="opacity-20" />
+            <div className="relative p-7 sm:p-10 rounded-full bg-white/5 border-2 border-white/5 shadow-inner">
+              <Camera size={52} className="sm:hidden opacity-20" />
+              <Camera size={64} className="hidden sm:block opacity-20" />
             </div>
           </div>
           <div className="text-center space-y-2">
-            <h3 className="font-black uppercase text-xl italic">Загрузи реальность</h3>
-            <p className="text-[10px] opacity-40 font-bold uppercase">Мы добавим в неё немного магии</p>
+            <h3 className="font-black uppercase text-lg sm:text-xl italic">Загрузи реальность</h3>
+            <p className="text-[9px] sm:text-[10px] opacity-40 font-bold uppercase">Мы добавим в неё немного магии</p>
           </div>
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="glossy-btn w-full py-6 rounded-[24px] font-black uppercase text-sm flex items-center justify-center space-x-3 shadow-2xl transition-all active:scale-95"
+            className="glossy-btn w-full py-4 sm:py-6 rounded-[20px] sm:rounded-[24px] font-black uppercase text-[12px] sm:text-sm flex items-center justify-center space-x-2.5 sm:space-x-3 shadow-2xl transition-all active:scale-95"
             style={{ backgroundColor: theme.accent, color: theme.bg }}
           >
-            <Upload size={24} />
+            <Upload size={20} />
             <span>Выбрать фото</span>
           </button>
           <input 
@@ -507,9 +560,9 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
           />
         </div>
       ) : (
-        <div className="space-y-8 animate-in zoom-in-95 duration-500">
+        <div className="space-y-6 sm:space-y-8 animate-in zoom-in-95 duration-500">
           {/* Main Display */}
-          <div className="relative group rounded-[40px] overflow-hidden border-[6px] transition-all duration-700" 
+          <div className="relative group rounded-[28px] sm:rounded-[40px] overflow-hidden border-[4px] sm:border-[6px] transition-all duration-700" 
                style={{ 
                  borderColor: isProcessing ? theme.secondary : theme.accent,
                  boxShadow: isProcessing ? `0 0 80px ${theme.secondary}88` : `0 20px 60px ${theme.shadow}`
@@ -521,13 +574,15 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
             />
             
             {isProcessing && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-xl flex flex-col items-center justify-center text-center p-8 z-10 animate-in fade-in duration-300">
-                <div className="relative mb-8">
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-xl flex flex-col items-center justify-center text-center p-6 sm:p-8 z-10 animate-in fade-in duration-300">
+                <div className="relative mb-6 sm:mb-8">
                   <div className="absolute inset-0 bg-white/20 blur-3xl animate-pulse rounded-full" />
-                  <RefreshCw size={80} className="animate-spin text-white opacity-80" />
-                  <Sparkles size={40} className="absolute -top-4 -right-4 animate-bounce" style={{ color: theme.accent }} />
+                  <RefreshCw size={68} className="sm:hidden animate-spin text-white opacity-80" />
+                  <RefreshCw size={80} className="hidden sm:block animate-spin text-white opacity-80" />
+                  <Sparkles size={32} className="sm:hidden absolute -top-3 -right-3 animate-bounce" style={{ color: theme.accent }} />
+                  <Sparkles size={40} className="hidden sm:block absolute -top-4 -right-4 animate-bounce" style={{ color: theme.accent }} />
                 </div>
-                <h4 className="font-black uppercase tracking-[0.3em] text-2xl mb-4" style={{ color: theme.accent }}>Колдуем...</h4>
+                <h4 className="font-black uppercase tracking-[0.24em] sm:tracking-[0.3em] text-xl sm:text-2xl mb-4" style={{ color: theme.accent }}>Колдуем...</h4>
                 <div className="flex space-x-2">
                    {[0, 1, 2].map(i => (
                      <div key={i} className="w-3 h-3 rounded-full bg-white animate-bounce" style={{ animationDelay: `${i * 0.2}s` }} />
@@ -537,11 +592,11 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
             )}
             
             {editedImage && !isProcessing && (
-              <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 animate-in zoom-in-50">
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex flex-col gap-2 animate-in zoom-in-50">
                 <button
                   onClick={handleDownloadEdited}
                   disabled={isDownloading}
-                  className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${
+                  className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center transition-all ${
                     isDownloading ? 'opacity-60' : 'hover:scale-105 active:scale-95'
                   }`}
                   style={{
@@ -552,13 +607,13 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
                   title="Скачать на устройство"
                   aria-label="Скачать на устройство"
                 >
-                  <Download size={20} />
+                  <Download size={18} />
                 </button>
 
                 <button
                   onClick={handleShareToTelegram}
                   disabled={isSharing}
-                  className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${
+                  className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center transition-all ${
                     isSharing ? 'opacity-60' : 'hover:scale-105 active:scale-95'
                   }`}
                   style={{
@@ -569,7 +624,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
                   title="Поделиться в Telegram"
                   aria-label="Поделиться в Telegram"
                 >
-                  <SquareArrowUp size={20} />
+                  <SquareArrowUp size={18} />
                 </button>
               </div>
             )}
@@ -578,11 +633,11 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
           {/* STYLE PRESETS */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3 ml-2">
-               <Zap size={16} className="text-yellow-400" />
-               <h3 className="text-[11px] font-black uppercase opacity-60 tracking-[0.2em]">Выбери игровой мир:</h3>
+               <Zap size={15} className="text-yellow-400" />
+               <h3 className="text-[10px] sm:text-[11px] font-black uppercase opacity-60 tracking-[0.2em]">Выбери игровой мир:</h3>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {STYLE_PRESETS.map((preset) => {
                 const isSelected = activePreset === preset.id;
                 return (
@@ -593,7 +648,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
                       setPrompt(preset.prompt);
                       handleEdit(preset.prompt, preset.id);
                     }}
-                    className={`relative p-6 rounded-[32px] border-4 transition-all duration-300 flex flex-col items-center justify-center space-y-3 overflow-hidden group ${
+                    className={`relative p-4 sm:p-6 rounded-[22px] sm:rounded-[32px] border-[3px] sm:border-4 transition-all duration-300 flex flex-col items-center justify-center space-y-2.5 sm:space-y-3 overflow-hidden group ${
                       isProcessing && !isSelected ? 'opacity-30 grayscale pointer-events-none' : 'hover:scale-[1.05] active:scale-95'
                     } ${isSelected ? 'animate-pulse-slow' : ''}`}
                     style={{ 
@@ -607,10 +662,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
                       style={{ backgroundColor: preset.color }}
                     />
                     
-                    <span className={`text-5xl transition-all duration-500 ${isSelected ? 'scale-125 rotate-12' : 'group-hover:scale-110'}`}>
+                    <span className={`text-4xl sm:text-5xl transition-all duration-500 ${isSelected ? 'scale-125 rotate-12' : 'group-hover:scale-110'}`}>
                       {preset.icon}
                     </span>
-                    <span className="text-[14px] font-black uppercase tracking-tight" style={{ color: isSelected ? preset.color : theme.text }}>
+                    <span className="text-[12px] sm:text-[14px] font-black uppercase tracking-tight" style={{ color: isSelected ? preset.color : theme.text }}>
                       {preset.label}
                     </span>
 
@@ -625,19 +680,19 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
             </div>
           </div>
 
-          <div className="space-y-4 pt-4">
-            <div className="flex space-x-4">
+          <div className="space-y-4 pt-2 sm:pt-4">
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
               <button 
                 onClick={reset}
                 disabled={isProcessing}
-                className="flex-1 py-6 rounded-[28px] font-black uppercase text-xs bg-white/5 hover:bg-white/10 transition-all border-2 border-white/5 opacity-50 hover:opacity-100"
+                className="flex-1 py-4 sm:py-6 rounded-[20px] sm:rounded-[28px] font-black uppercase text-[11px] sm:text-xs bg-white/5 hover:bg-white/10 transition-all border-2 border-white/5 opacity-50 hover:opacity-100"
               >
                 Очистить
               </button>
               <button 
                 onClick={() => handleEdit()}
                 disabled={!prompt || isProcessing}
-                className={`flex-[2] glossy-btn py-6 rounded-[28px] font-black uppercase text-sm flex items-center justify-center space-x-3 shadow-2xl transition-all ${
+                className={`flex-[2] glossy-btn py-4 sm:py-6 rounded-[20px] sm:rounded-[28px] font-black uppercase text-[12px] sm:text-sm flex items-center justify-center space-x-2.5 sm:space-x-3 shadow-2xl transition-all ${
                   (!prompt || isProcessing) ? 'opacity-30' : 'hover:scale-[1.02] active:scale-95'
                 }`}
                 style={{ 
@@ -645,7 +700,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ theme, kidCode }) => {
                   color: theme.bg,
                 }}
               >
-                <Zap size={20} />
+                <Zap size={18} />
                 <span>Запуск Магии</span>
               </button>
             </div>

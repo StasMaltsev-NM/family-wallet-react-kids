@@ -46,6 +46,7 @@ export type KidMagicImageResponse = {
   share_url?: string;
   world?: string;
   child_name?: string;
+  provider?: string;
   message?: string;
 };
 
@@ -104,6 +105,7 @@ const normalizeMagicImageResponse = (raw: AnyJson | null): KidMagicImageResponse
     share_url: shareUrl || undefined,
     world: asString(raw?.world) || asString(raw?.style),
     child_name: asString(raw?.child_name) || asString(raw?.childName),
+    provider: asString(raw?.provider),
     message: asString(raw?.message) || asString(raw?.error),
   };
 };
@@ -404,6 +406,10 @@ export const kidApi = {
     })
       .then((raw) => normalizeMagicImageResponse(raw))
       .then((normalized) => {
+      const provider = asString((normalized as AnyJson)?.provider).toLowerCase();
+      if (photo && provider === "workers_ai_fallback") {
+        throw new Error("Сервер вернул fallback-генерацию без надежного style-transfer. Попробуй еще раз.");
+      }
       if (normalized.image_url) return normalized;
       const msg = normalized.message || "Не удалось применить стиль к загруженному фото";
       throw new Error(msg);

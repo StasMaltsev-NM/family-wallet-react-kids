@@ -31,8 +31,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const currentXP = lifetimeEarnings % xpPerLevel;
   const progressToNextLevel = (currentXP / xpPerLevel) * 100;
   const earningsTier = getBalanceSizeTier(Number(lifetimeEarnings || 0));
-  const earningsValueClass =
-    earningsTier === "tight" ? "text-[24px]" : earningsTier === "compact" ? "text-[27px]" : "text-3xl";
+  const earningsFontPx = earningsTier === "tight" ? 24 : earningsTier === "compact" ? 27 : 30;
 
   const handleLogout = () => {
     if (confirm('Выйти из профиля?')) {
@@ -48,34 +47,34 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   ];
 
   return (
-    <div className="flex flex-col pt-4 pb-32 px-6 min-h-screen">
+    <div className="flex flex-col pt-3 sm:pt-4 pb-28 sm:pb-32 px-4 sm:px-6 md:px-7 min-h-screen">
 {/* Header with Settings */}
-<div className="flex justify-between items-center mb-6">
+<div className="flex justify-between items-center mb-5 sm:mb-6">
   <div />
   
   <button 
     type="button"
-    className="p-3 rounded-2xl bg-white/5 border border-white/5 opacity-60"
+    className="p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/5 opacity-60"
     aria-label="Настройки"
     onClick={handleLogout}
   >
-    <Settings size={20} />
+    <Settings size={18} />
   </button>
 </div>
 
       {/* Avatar Section */}
-      <div className="flex flex-col items-center mb-8">
+      <div className="flex flex-col items-center mb-7 sm:mb-8">
         <Avatar theme={theme} />
-        <h1 className="text-4xl font-black italic uppercase mt-4 tracking-tighter" style={{ color: theme.text }}>
+        <h1 className="text-[36px] sm:text-4xl font-black italic uppercase mt-4 tracking-tighter" style={{ color: theme.text }}>
           {isParentMode ? 'Родитель' : name}
         </h1>
         
         {/* XP Progress Bar */}
         {!isParentMode && (
-          <div className="w-full max-w-[240px] mt-4">
+          <div className="w-full max-w-[300px] sm:max-w-[240px] mt-4">
             <div className="flex justify-between items-end mb-2">
-               <span className="text-[10px] font-black uppercase opacity-40">Прогресс уровня</span>
-               <span className="text-[10px] font-black uppercase" style={{ color: theme.accent }}>{currentXP} / {xpPerLevel} XP</span>
+               <span className="text-[9px] sm:text-[10px] font-black uppercase opacity-40">Прогресс уровня</span>
+               <span className="text-[9px] sm:text-[10px] font-black uppercase" style={{ color: theme.accent }}>{currentXP} / {xpPerLevel} XP</span>
             </div>
             <div className="h-4 w-full bg-white/5 rounded-full overflow-hidden p-1 border border-white/10">
               <div 
@@ -88,21 +87,24 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-7 sm:mb-8">
         <div 
-          className="p-6 rounded-[32px] border-b-8 transition-transform active:scale-95"
+          className="p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border-b-8 transition-transform active:scale-95"
           style={{ borderColor: theme.secondary, backgroundColor: theme.surface }}
         >
           <div className="flex items-center space-x-2 mb-2 opacity-50">
             <Zap size={14} />
             <p className="text-[10px] font-black uppercase tracking-widest">Доход</p>
           </div>
-          <p className={`${earningsValueClass} font-black italic leading-none whitespace-nowrap`} style={{ color: theme.accent }}>
+          <p
+            className="font-black italic leading-none whitespace-nowrap"
+            style={{ color: theme.accent, fontSize: `clamp(24px, 8.8vw, ${earningsFontPx}px)` }}
+          >
             {lifetimeEarnings}
           </p>
         </div>
         <div 
-          className="p-6 rounded-[32px] border-b-8 transition-transform active:scale-95"
+          className="p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border-b-8 transition-transform active:scale-95"
           style={{ borderColor: theme.accent, backgroundColor: theme.surface }}
         >
           <div className="flex items-center space-x-2 mb-2 opacity-50">
@@ -115,7 +117,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
       {/* Badges Section */}
       {!isParentMode && (
-        <div className="mb-10">
+        <div className="mb-8 sm:mb-10">
           <div className="flex justify-between items-center mb-4">
             <h3 className="flex items-center text-lg font-black uppercase italic">
               <Trophy size={20} className="mr-2" style={{ color: theme.accent }} />
@@ -123,7 +125,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </h3>
             <ChevronRight size={16} className="opacity-30" />
           </div>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {BADGES.map((badge, idx) => {
               const unlocked = completedCount >= (idx + 1) * 2;
               return (
@@ -161,7 +163,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <button
                 key={opt.id}
                 onClick={() => onThemeChange(opt.id)}
-                className={`flex items-center justify-between p-5 rounded-[24px] border-2 transition-all duration-300 ${
+                className={`flex items-center justify-between p-4 sm:p-5 rounded-[20px] sm:rounded-[24px] border-2 transition-all duration-300 ${
                   isSelected ? 'scale-[1.02]' : 'opacity-60 hover:opacity-100'
                 }`}
                 style={{ 
@@ -174,7 +176,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   <span className="text-2xl">{opt.icon}</span>
                   <div className="text-left">
                     <p className="font-black uppercase text-sm leading-none">{opt.label}</p>
-                    <p className="text-[9px] font-bold opacity-40 uppercase mt-1">Набор цветов для {opt.label.toLowerCase()}а</p>
+                    <p className="text-[8px] sm:text-[9px] font-bold opacity-40 uppercase mt-1">Набор цветов для {opt.label.toLowerCase()}а</p>
                   </div>
                 </div>
                 <div 

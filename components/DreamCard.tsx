@@ -199,7 +199,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   const progressRounded = Math.round(progress);
   const isReached = uiStatus === "active" && targetAmount > 0 && remainingAmount <= 0;
   const isLargeTargetAmount = String(Math.trunc(targetAmount)).length >= 6;
-  const sumValueClass = isLargeTargetAmount ? "text-[17px]" : "text-[20px]";
+  const sumValueClass = isLargeTargetAmount ? "text-[15px] sm:text-[17px]" : "text-[17px] sm:text-[20px]";
   const dreamImageUrl = firstNonEmptyString([
     serverDream?.image_url,
     (serverDream as Record<string, unknown> | null)?.image,
@@ -386,10 +386,10 @@ const DreamCard: React.FC<DreamCardProps> = ({
     <button
       onClick={() => void handleDelete()}
       disabled={isDeleting || !dreamId}
-      className="absolute top-4 right-4 z-20 rounded-xl border border-slate-400/55 bg-slate-900/85 p-2.5 text-slate-100 shadow-[0_6px_18px_rgba(0,0,0,0.45)] transition-all hover:border-slate-200 hover:text-white disabled:opacity-45"
+      className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 rounded-xl border border-slate-400/55 bg-slate-900/85 p-2 sm:p-2.5 text-slate-100 shadow-[0_6px_18px_rgba(0,0,0,0.45)] transition-all hover:border-slate-200 hover:text-white disabled:opacity-45"
       title="Удалить мечту"
     >
-      <Trash2 size={18} />
+      <Trash2 size={16} />
     </button>
   );
 
@@ -398,7 +398,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
     variant: "default" | "pending" = "default"
   ) => (
     <div
-      className={`relative overflow-hidden px-4 pt-4 pb-4 min-h-[340px] flex flex-col ${
+      className={`relative overflow-hidden px-3.5 sm:px-4 pt-3.5 sm:pt-4 pb-4 min-h-[300px] sm:min-h-[340px] flex flex-col ${
         variant === "pending" ? "rounded-none" : "rounded-[36px]"
       }`}
       style={{
@@ -412,22 +412,22 @@ const DreamCard: React.FC<DreamCardProps> = ({
       <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-black/24 to-black/56" />
       {renderDeleteButton()}
 
-      <div className="relative z-10 pr-14">
-        <h3 className="text-[26px] leading-[0.96] font-black uppercase italic tracking-tight text-white break-words">
+      <div className="relative z-10 pr-12 sm:pr-14">
+        <h3 className="text-[24px] sm:text-[26px] leading-[0.96] font-black uppercase italic tracking-tight text-white break-words">
           {dreamTitle}
         </h3>
-        <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
+        <p className="mt-1 text-[8px] sm:text-[9px] font-black uppercase tracking-[0.18em] sm:tracking-[0.2em] text-white/55">
           ТВОЯ ГЛАВНАЯ МЕЧТА
         </p>
         {isReached && (
-          <p className="mt-1 text-[11px] font-black uppercase tracking-[0.1em] text-[#FFD700]">
+          <p className="mt-1 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.1em] text-[#FFD700]">
             ГОТОВО!
           </p>
         )}
 
-        {statusHint && <p className="mt-3 text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>}
+        {statusHint && <p className="mt-3 text-xs sm:text-sm font-black uppercase tracking-[0.14em] text-yellow-200">{statusHint}</p>}
         {isDreamImageSyncing && !dreamImageUrl && (
-          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/65">
+          <p className="mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.14em] text-white/65">
             Обновляем изображение мечты...
           </p>
         )}
@@ -435,20 +435,20 @@ const DreamCard: React.FC<DreamCardProps> = ({
 
       {uiStatus === "active" && (
         <div className="relative z-10 mt-auto pt-4">
-          <div className="w-full rounded-[28px] bg-black/3 px-4 py-4 backdrop-blur-[0.3px]">
-            <div className="flex items-end gap-1.5 leading-none whitespace-nowrap">
-              <span className="text-[17px] font-black italic uppercase" style={{ color: "#FFEA66" }}>
+          <div className="w-full rounded-[24px] sm:rounded-[28px] bg-black/3 px-3.5 sm:px-4 py-3.5 sm:py-4 backdrop-blur-[0.3px]">
+            <div className="flex items-end gap-1 leading-none whitespace-nowrap">
+              <span className="text-[15px] sm:text-[17px] font-black italic uppercase" style={{ color: "#FFEA66" }}>
                 ОСТАЛОСЬ:
               </span>
-              <span className="text-[44px] font-black italic" style={{ color: "#FFEA66" }}>
+              <span className="text-[38px] sm:text-[44px] font-black italic" style={{ color: "#FFEA66" }}>
                 {remainingAmount}
               </span>
-              <span className="text-[50px] font-black leading-none" style={{ color: "#D9A700" }}>
+              <span className="text-[42px] sm:text-[50px] font-black leading-none" style={{ color: "#D9A700" }}>
                 ★
               </span>
             </div>
             <div className="mt-1 flex items-end gap-1 whitespace-nowrap">
-              <span className="text-[11px] font-black uppercase tracking-[0.1em] text-white/70">СУММА МЕЧТЫ:</span>
+              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.1em] text-white/70">СУММА МЕЧТЫ:</span>
               <span className={`inline-flex items-end gap-0.5 font-black leading-none ${sumValueClass}`}>
                 <span style={{ color: "#F4CB2F" }}>{targetAmount}</span>
                 <span style={{ color: "#B88300" }}>★</span>
@@ -459,7 +459,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
       )}
 
       <div className={`relative z-10 ${uiStatus === "active" ? "pt-3" : "mt-auto pt-3"}`}>
-        <div className="h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
+        <div className="h-3.5 sm:h-4 w-full rounded-full bg-black/65 p-1 border border-white/10 shadow-inner">
           <div
             className="h-full rounded-full transition-all duration-1000 relative"
             style={{
@@ -472,7 +472,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
             <div className="absolute inset-0 bg-white/15 animate-pulse" />
           </div>
         </div>
-        <div className="mt-2 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.15em] text-white/65">
+        <div className="mt-2 flex items-center justify-between text-[8px] sm:text-[9px] font-black uppercase tracking-[0.15em] text-white/65">
           <span>ПРОГРЕСС</span>
           <span>{progressRounded}%</span>
         </div>
@@ -483,7 +483,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   if (isLoading) {
     return (
       <div
-        className="w-full p-8 rounded-[40px] border-2 bg-black/40 backdrop-blur-xl"
+        className="w-full p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] border-2 bg-black/40 backdrop-blur-xl"
         style={{ borderColor: "rgba(255,255,255,0.05)" }}
       >
         <div className="animate-pulse space-y-4">
@@ -498,7 +498,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   if (uiStatus === "none") {
     return (
       <div
-        className="w-full p-8 rounded-[40px] border-2 bg-black/40 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500"
+        className="w-full p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] border-2 bg-black/40 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500"
         style={{ borderColor: "rgba(255,255,255,0.05)", boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}
       >
         <div className="flex flex-col space-y-6">
@@ -506,7 +506,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
             <div className="p-3 rounded-2xl bg-white/5">
               <Star size={20} className="text-yellow-400 animate-pulse" />
             </div>
-            <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Какая твоя мечта?</h3>
+            <h3 className="text-lg sm:text-xl font-black uppercase italic tracking-tighter text-white">Какая твоя мечта?</h3>
           </div>
 
           <div className="relative">
@@ -516,7 +516,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
               value={inputTitle}
               onChange={(e) => setInputTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void handleCreate()}
-              className="w-full p-6 rounded-2xl bg-white/5 border border-yellow-400/65 text-base font-bold focus:outline-none focus:border-yellow-300 transition-all text-white placeholder:opacity-20"
+              className="w-full p-4 sm:p-6 rounded-2xl bg-white/5 border border-yellow-400/65 text-sm sm:text-base font-bold focus:outline-none focus:border-yellow-300 transition-all text-white placeholder:opacity-20"
             />
           </div>
 
@@ -530,7 +530,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
           <button
             onClick={() => void handleCreate()}
             disabled={!inputTitle.trim() || isSubmitting}
-            className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] flex items-center justify-center transition-all ${
+            className={`w-full py-4 sm:py-5 rounded-2xl font-black uppercase tracking-[0.16em] sm:tracking-[0.2em] flex items-center justify-center transition-all ${
               inputTitle.trim() && !isSubmitting ? "active:scale-95 shadow-lg" : "opacity-20 grayscale"
             }`}
             style={{ backgroundColor: theme.accent, color: theme.bg }}
@@ -545,7 +545,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
   if (uiStatus === "pending") {
     return (
       <div
-        className="w-full p-0 rounded-[40px] border-4 overflow-hidden animate-in fade-in zoom-in-95 duration-300"
+        className="w-full p-0 rounded-[28px] sm:rounded-[40px] border-[3px] sm:border-4 overflow-hidden animate-in fade-in zoom-in-95 duration-300"
         style={{
           borderColor: "rgba(250,204,21,0.55)",
           backgroundColor: "transparent",
@@ -567,7 +567,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
         }
       `}</style>
       <div
-        className="w-full p-0 rounded-[40px] border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
+        className="w-full p-0 rounded-[28px] sm:rounded-[40px] border-[3px] sm:border-4 relative overflow-hidden group transition-all duration-700 animate-in slide-in-from-top-4"
         style={{
           borderColor: isReached ? "#FFD700" : theme.accent,
           backgroundColor: theme.surface,
@@ -579,7 +579,7 @@ const DreamCard: React.FC<DreamCardProps> = ({
       {renderHeroPanel()}
 
       {errorMessage && (
-        <div className="mx-4 my-3 flex items-start gap-2 rounded-2xl border border-rose-400/40 bg-rose-400/10 p-3 text-xs font-bold text-rose-200">
+        <div className="mx-3.5 sm:mx-4 my-3 flex items-start gap-2 rounded-2xl border border-rose-400/40 bg-rose-400/10 p-3 text-xs font-bold text-rose-200">
           <AlertCircle size={14} className="mt-0.5 shrink-0" />
           <span>{errorMessage}</span>
         </div>

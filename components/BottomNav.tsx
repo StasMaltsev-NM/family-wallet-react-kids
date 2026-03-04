@@ -25,10 +25,15 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, theme, i
 
   return (
     <div 
-      className="fixed bottom-0 left-0 right-0 h-24 px-4 pb-6 flex items-center justify-around z-50"
-      style={{ backgroundColor: `${theme.bg}EE`, backdropFilter: 'blur(15px)' }}
+      className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-2 sm:px-4"
+      style={{
+        backgroundColor: `${theme.bg}EE`,
+        backdropFilter: 'blur(15px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom), 10px)',
+      }}
     >
-      <div className="flex w-full max-w-md mx-auto justify-between items-center bg-white/5 rounded-[32px] p-2 border border-white/10 shadow-2xl">
+      <div className="w-full max-w-[1120px] flex justify-center">
+        <div className="flex w-full max-w-[760px] justify-between items-center bg-white/5 rounded-[30px] p-1.5 sm:p-2 md:p-2.5 border border-white/10 shadow-2xl">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           const Icon = item.icon;
@@ -37,8 +42,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, theme, i
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center min-w-[56px] h-14 rounded-2xl transition-all duration-500 relative ${
-                isActive ? 'scale-110 -translate-y-2' : 'opacity-40 hover:opacity-100'
+              className={`flex flex-col items-center justify-center min-w-[50px] sm:min-w-[56px] md:min-w-[68px] h-12 sm:h-14 md:h-[58px] rounded-2xl transition-all duration-500 relative ${
+                isActive ? 'scale-[1.04] -translate-y-1 sm:scale-110 sm:-translate-y-2' : 'opacity-45 hover:opacity-100'
               }`}
               style={{
                 backgroundColor: isActive ? theme.surface : 'transparent',
@@ -60,13 +65,14 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, theme, i
                 )}
               </div>
               {isActive && (
-                <span className="text-[8px] font-black mt-1 uppercase tracking-widest" style={{ color: theme.accent }}>
+                <span className="text-[7px] sm:text-[8px] font-black mt-1 uppercase tracking-widest" style={{ color: theme.accent }}>
                   {item.label}
                 </span>
               )}
             </button>
           );
         })}
+        </div>
       </div>
     </div>
   );

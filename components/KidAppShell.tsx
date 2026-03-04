@@ -994,13 +994,15 @@ const handleReceiveReward = async (purchaseId: string) => {
 
   return (
     <div
-      className="h-screen flex flex-col"
+      className="h-[100dvh] min-h-[100dvh] w-full flex flex-col overflow-hidden"
       style={{ backgroundColor: theme.bg, color: theme.text }}
     >
-      <main className="flex-1 overflow-y-auto pb-20">
-        {!isEditorTab && renderScreen()}
-        <div className={isEditorTab ? "block" : "hidden"}>
-          <ImageEditor theme={theme} kidCode={kidCode} />
+      <main className="scrollArea flex-1 overflow-y-auto pb-[108px] sm:pb-[118px] md:pb-[128px]">
+        <div className="mx-auto w-full max-w-[1120px]">
+          {!isEditorTab && renderScreen()}
+          <div className={isEditorTab ? "block" : "hidden"}>
+            <ImageEditor theme={theme} kidCode={kidCode} />
+          </div>
         </div>
       </main>
 

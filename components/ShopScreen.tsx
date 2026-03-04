@@ -94,28 +94,28 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
   const skeletonGlow = withAlpha(theme.accent, 0.42);
 
   return (
-    <div className="flex flex-col pt-8 pb-36 px-6 min-h-screen">
-      <div className="flex justify-between items-end mb-10">
+    <div className="flex flex-col pt-5 sm:pt-8 pb-28 sm:pb-36 px-4 sm:px-6 md:px-7 min-h-screen">
+      <div className="flex justify-between items-end gap-3 mb-8 sm:mb-10">
         <div>
-          <h1 className="text-4xl font-black italic uppercase leading-none" style={{ color: theme.text }}>
+          <h1 className="text-[38px] sm:text-4xl font-black italic uppercase leading-none" style={{ color: theme.text }}>
             МАГАЗИН <br />
             <span style={{ color: theme.accent }}>ПРИЗОВ</span>
           </h1>
         </div>
         <div 
-          className="flex flex-col items-end px-5 py-3 rounded-[24px] border-2 bg-black/40 backdrop-blur-xl"
+          className="flex flex-col items-end px-4 sm:px-5 py-2.5 sm:py-3 rounded-[20px] sm:rounded-[24px] border-2 bg-black/40 backdrop-blur-xl"
           style={{ borderColor: theme.accent, boxShadow: `0 10px 30px ${theme.shadow}` }}
         >
           <div className="flex items-center">
-            <span className="mr-2 text-xl">{currencyIcon}</span>
-            <span className="font-black text-2xl italic">{balance}</span>
+            <span className="mr-1.5 sm:mr-2 text-lg sm:text-xl">{currencyIcon}</span>
+            <span className="font-black text-xl sm:text-2xl italic">{balance}</span>
           </div>
           <span className="text-[8px] font-black opacity-40 uppercase tracking-[0.2em]">Доступно</span>
         </div>
       </div>
 
       {showSkeletons ? (
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {Array.from({ length: 4 }).map((_, idx) => (
             <div
               key={`shop-skeleton-${idx}`}
@@ -130,10 +130,10 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
                 ['--shop-skeleton-glow' as string]: skeletonGlow,
               } as React.CSSProperties}
             >
-              <div className="h-40 bg-white/10" />
+              <div className="h-32 sm:h-40 bg-white/10" />
               <div className="p-4 flex-grow flex flex-col justify-between space-y-3">
                 <div className="h-4 rounded-xl bg-white/10" />
-                <div className="h-16 rounded-2xl bg-white/10 flex items-center justify-center">
+                <div className="h-14 sm:h-16 rounded-2xl bg-white/10 flex items-center justify-center">
                   <span className="shop-skeleton-star text-lg">★</span>
                 </div>
               </div>
@@ -141,7 +141,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
           ))}
         </div>
       ) : (
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {rewards.map((reward, idx) => {
           const canAfford = balance >= reward.price;
           const isUnique = !reward.recurring;
@@ -150,7 +150,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
           return (
             <div 
               key={reward.id}
-              className="flex flex-col rounded-[32px] overflow-hidden border-4 transition-all duration-500 relative group hover:scale-[1.03] active:scale-95 cursor-pointer"
+              className="flex flex-col rounded-[24px] sm:rounded-[32px] overflow-hidden border-[3px] sm:border-4 transition-all duration-500 relative group hover:scale-[1.03] active:scale-95 cursor-pointer"
               style={{ 
                 backgroundColor: theme.surface,
                 borderColor: isRecentlyPurchased ? '#F97316' : canAfford ? theme.accent : '#F97316',
@@ -162,7 +162,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
               }}
             >
               {/* Image Section - Always Colorful now */}
-              <div className="relative h-40 overflow-hidden">
+              <div className="relative h-32 sm:h-40 overflow-hidden">
                 <RewardImage
                   src={reward.image}
                   alt={reward.title}
@@ -188,8 +188,8 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
               </div>
 
               {/* Info Section */}
-              <div className="p-4 flex-grow flex flex-col justify-between space-y-3">
-                <h3 className="font-black text-[10px] leading-tight uppercase tracking-tight text-center">{reward.title}</h3>
+              <div className="p-3.5 sm:p-4 flex-grow flex flex-col justify-between space-y-3">
+                <h3 className="font-black text-[9px] sm:text-[10px] leading-tight uppercase tracking-tight text-center">{reward.title}</h3>
                 
                 <button
                   disabled={!canAfford || isRecentlyPurchased}
@@ -220,13 +220,13 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
                   {isRecentlyPurchased ? (
                     <div className="flex items-center justify-center w-full space-x-2">
                       <CheckCircle2 size={22} />
-                      <span className="text-sm tracking-wider">КУПЛЕНО</span>
+                      <span className="text-[11px] sm:text-sm tracking-[0.12em] sm:tracking-wider">КУПЛЕНО</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center w-full space-x-1">
-                      <span className="text-3xl italic tracking-tighter">{reward.price}</span>
+                      <span className="text-[30px] sm:text-3xl italic tracking-tighter">{reward.price}</span>
                       <Star 
-                        size={28} 
+                        size={24} 
                         strokeWidth={3} 
                         fill="none" 
                         className="opacity-90"

@@ -16,8 +16,8 @@ const BootLoadingScreen: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-black flex flex-col items-center justify-center px-6 text-white">
-      <div className="relative w-32 h-32">
+    <div className="min-h-[100dvh] w-full bg-black flex flex-col items-center justify-center px-5 sm:px-6 text-white">
+      <div className="relative w-28 h-28 sm:w-32 sm:h-32">
         <div className="absolute inset-0 rounded-full blur-2xl transition-colors duration-500" style={{ backgroundColor: `${activeColor}33` }} />
         <svg viewBox="0 0 100 100" className="relative w-full h-full">
           <path
@@ -42,12 +42,12 @@ const BootLoadingScreen: React.FC = () => {
       </div>
 
       <p
-        className="mt-8 text-[13px] font-black uppercase tracking-[0.28em] transition-colors duration-500"
+        className="mt-7 sm:mt-8 text-[12px] sm:text-[13px] font-black uppercase tracking-[0.24em] sm:tracking-[0.28em] transition-colors duration-500"
         style={{ color: activeColor }}
       >
         ЗАГРУЗКА
       </p>
-      <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/55 text-center">
+      <p className="mt-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.16em] text-white/55 text-center">
         Подтягиваем данные приложения
       </p>
 
