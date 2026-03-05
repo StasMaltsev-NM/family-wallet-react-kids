@@ -88,20 +88,6 @@ const extractRewardsArray = (raw: any): any[] => {
   return [];
 };
 
-const normalizeRewardTitle = (value: unknown): string =>
-  String(value ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toUpperCase();
-
-const isAllowedRewardTitle = (value: unknown): boolean => {
-  const title = normalizeRewardTitle(value);
-  return (
-    title.includes("БАРБИ") ||
-    title.includes("ПОНЧИК") ||
-    (title.includes("МУЛЬТИК") && (title.includes("YOUTUBE") || title.includes("ЮТУБ")))
-  );
-};
 
 type Props = {
   kidCode: string;
@@ -955,7 +941,6 @@ const handleReceiveReward = async (purchaseId: string) => {
                   recurring: Boolean(r?.is_permanent === 1 || r?.is_permanent === true || r?.recurring),
                 };
               })
-              .filter((r) => isAllowedRewardTitle(r.title))
               .filter((r) => !user.purchasedRewards.includes(r.id))
             }
             onPurchase={handlePurchaseReward}
